@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details | Smart Organic Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0B1120;
+            --bg-secondary: #003300;
+            --accent-primary: #00FFC6;
+            --accent-secondary: #00FF9C;
+            --text-primary: #ffffff;
+            --text-secondary: #e0e0e0;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(0, 255, 198, 0.2);
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 80px; /* Space for fixed navbar */
+        }
+
+        /* Simple Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(11, 17, 32, 0.95);
+            padding: 1rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Product Layout */
+        .product-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .product-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 15px;
+            border: 2px solid var(--card-border);
+        }
+
+        .product-info {
+            padding: 1rem 0;
+        }
+
+        .product-title {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .farmer-info {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .product-price {
+            font-size: 2rem;
+            color: var(--accent-primary);
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Sensor Cards */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .sensor-card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            text-align: center;
+        }
+
+        .sensor-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            margin: 0.5rem 0;
+        }
+
+        .sensor-status {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            flex: 1;
+        }
+
+        /* Blockchain Section */
+        .blockchain-section {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            margin: 2rem 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .product-main {
+                grid-template-columns: 1fr;
+            }
+            
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple Navbar -->
+    <nav class="navbar">
+        <div class="logo">🌿 Smart Organic Connect</div>
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="marketplace.html">Marketplace</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="auth-buttons">
+            <button class="btn btn-outline">Login</button>
+            <button class="btn btn-primary">Sign Up</button>
+        </div>
+    </nav>
+
+    <!-- Product Content -->
+    <div class="product-container">
+        <div class="product-main">
+            <!-- Product Image -->
+            <div>
+                <img id="productImage" src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80" 
+                     alt="Organic Tomatoes" class="product-image">
+            </div>
+
+            <!-- Product Info -->
+<!-- Product Info -->
+<div class="product-info">
+    <h1 class="product-title" id="productName">Loading...</h1>
+    <p class="farmer-info" id="farmerInfo">Farmer: Loading...</p>
+    <div class="product-price" id="productPrice">₹--</div>
+
+    <div class="product-description">
+        <h3>Description</h3>
+        <p id="productDescription">Loading description...</p>
+    </div>
+
+    <!-- IoT Sensor Data -->
+    <div class="sensor-section">
+        <h3>🌡️ IoT Sensor Verification</h3>
+        <div class="sensor-grid">
+            <div class="sensor-card">
+                <div>💧 Soil Moisture</div>
+                <div class="sensor-value" id="soilMoisture">--%</div>
+                <div class="sensor-status" id="soilStatus">--</div>
+            </div>
+            <div class="sensor-card">
+                <div>🌡️ Temperature</div>
+                <div class="sensor-value" id="temperature">--°C</div>
+                <div class="sensor-status" id="tempStatus">--</div>
+            </div>
+            <div class="sensor-card">
+                <div>💨 Humidity</div>
+                <div class="sensor-value" id="humidity">--%</div>
+                <div class="sensor-status" id="humidityStatus">--</div>
+            </div>
+        </div>
+        
+        <div class="verification-status" id="verificationStatus" style="display: none;">
+            <span id="statusText">Verifying...</span>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button class="btn btn-primary btn-large" onclick="addToCart()">Add to Cart</button>
+        <button class="btn btn-outline btn-large" onclick="buyNow()">Buy Now</button>
+    </div>
+</div>
+
+        <!-- Blockchain Section -->
+        <div class="blockchain-section">
+            <h3>⛓️ Blockchain Verification</h3>
+            <p>Sensor data securely stored on blockchain</p>
+            <div style="margin-top: 1rem;">
+                <strong>Transaction Hash:</strong> 
+                <span style="font-family: monospace;">0x5a7b3c...e42f</span>
+            </div>
+            <div>
+                <strong>Last Updated:</strong> 
+                <span id="lastUpdated">Just now</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple JavaScript to make it interactive
+        document.addEventListener('DOMContentLoaded', function() {
+            // You can add dynamic updates here later
+            console.log('Product page loaded');
+        });
+    </script>
+    <script>
+// Get product ID from URL
+function getProductId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+
+// Load product data (you'll replace this with your backend API)
+async function loadProductData() {
+    const productId = getProductId();
+    
+    if (!productId) {
+        // No product ID in URL, show error
+        document.getElementById('productName').textContent = 'Product Not Found';
+        return;
+    }
+
+    try {
+        // TODO: Replace with your backend API call
+        // const response = await fetch(`/api/products/${productId}`);
+        // const product = await response.json();
+        
+        // For now, use sample data based on ID
+        const sampleProducts = {
+    '1': {
+        name: 'Organic Tomatoes',
+        farmer: 'Rajesh Organic Farms',
+        price: '₹120/kg',
+        description: 'Fresh organic tomatoes grown with IoT monitoring',
+        image: 'https://images.unsplash.com/photo-1592924357228-91a4daadcfea?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '2': {
+        name: 'Fresh Spinach',
+        farmer: 'Green Valley Farms', 
+        price: '₹80/bunch',
+        description: 'Nutrient-rich organic spinach',
+        image: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '3': {
+        name: 'Organic Wheat',
+        farmer: 'Traditional Grains Co.',
+        price: '₹65/kg',
+        description: 'Pure organic wheat grains for healthy bread',
+        image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '4': {
+        name: 'Pure Honey',
+        farmer: 'Nature\'s Beehive',
+        price: '₹350/jar',
+        description: '100% pure organic honey from natural beehives',
+        image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '5': {
+        name: 'Organic Apples',
+        farmer: 'Apple Orchards Ltd.',
+        price: '₹200/kg',
+        description: 'Crisp and sweet organic apples',
+        image: 'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '6': {
+        name: 'Fresh Carrots',
+        farmer: 'Green Roots Farm',
+        price: '₹60/kg',
+        description: 'Sweet and crunchy organic carrots',
+        image: 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '7': {
+        name: 'Organic Bananas',
+        farmer: 'Tropical Fruits Co.',
+        price: '₹90/dozen',
+        description: 'Sweet organic bananas for healthy snacks',
+        image: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    },
+    '8': {
+        name: 'Fresh Broccoli',
+        farmer: 'Green Harvest Farms',
+        price: '₹110/kg',
+        description: 'Fresh organic broccoli packed with nutrients',
+        image: 'https://images.unsplash.com/photo-1518568811100-8c15f6d9d6c1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'
+    }
+};
+        
+
+        const product = sampleProducts[productId] || sampleProducts['1'];
+        
+        // Update page with product data
+        document.getElementById('productName').textContent = product.name;
+        document.getElementById('farmerInfo').textContent = `Farmer: ${product.farmer}`;
+        document.getElementById('productPrice').textContent = product.price;
+        document.getElementById('productDescription').textContent = product.description;
+        document.getElementById('productImage').src = product.image;
+        
+        // Generate sensor data
+        generateSensorData();
+        
+    } catch (error) {
+        console.error('Error loading product:', error);
+        document.getElementById('productName').textContent = 'Error Loading Product';
+    }
+}
+
+// Generate sample sensor data (replace with your backend data)
+function generateSensorData() {
+    const soilMoisture = Math.floor(Math.random() * 20) + 60;
+    const temperature = (Math.random() * 5) + 25;
+    const humidity = Math.floor(Math.random() * 20) + 60;
+    
+    document.getElementById('soilMoisture').textContent = `${soilMoisture}%`;
+    document.getElementById('temperature').textContent = `${temperature.toFixed(1)}°C`;
+    document.getElementById('humidity').textContent = `${humidity}%`;
+    
+    // Update status
+    document.getElementById('soilStatus').textContent = soilMoisture >= 60 ? 'Optimal' : 'Low';
+    document.getElementById('tempStatus').textContent = 'Optimal';
+    document.getElementById('humidityStatus').textContent = 'Optimal';
+    
+    // Show verification status
+    const statusDiv = document.getElementById('verificationStatus');
+    statusDiv.style.display = 'block';
+    statusDiv.style.background = 'rgba(0,255,136,0.1)';
+    statusDiv.style.border = '1px solid var(--success)';
+    document.getElementById('statusText').textContent = '✓ Optimal organic conditions verified';
+    document.getElementById('statusText').style.color = 'var(--success)';
+}
+
+// Cart functions
+function addToCart() {
+    alert('Add to cart functionality - connect to your backend');
+}
+
+function buyNow() {
+    alert('Buy now functionality - connect to your backend');
+}
+
+// Load product when page loads
+document.addEventListener('DOMContentLoaded', loadProductData);
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Organic Connect | IoT + Blockchain Farming</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Particle Animation Canvas -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🌿</span>
+            <span>Smart Organic Connect</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="marketplace.html">Marketplace</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+        </div>
+        <div class="auth-buttons">
+            <button class="btn btn-outline" onclick="window.location.href='login.html'">Login</button>
+            <button class="btn btn-primary" onclick="window.location.href='signup.html'">Sign Up</button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="animated-text-container">
+                <div class="animated-text">Empowering Farmers.</div>
+                <div class="animated-text">Building Trust</div>
+                <div class="animated-text">with IoT + Blockchain.</div>
+            </div>
+            <p class="hero-subtitle">Real-time freshness and verified organic quality at your fingertips.</p>
+            <button class="btn btn-primary hero-btn" onclick="window.location.href='#products'">Explore Marketplace</button>
+        </div>
+        <div class="hero-bg"></div>
+    </section>
+
+    <!-- Featured Products Section -->
+    <section class="marketplace" id="products">
+        <h2 class="section-title">Featured Organic Products</h2>
+        
+        <!-- Filter Bar -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="category">Category</label>
+                <select id="category">
+                    <option value="all">All Categories</option>
+                    <option value="fruits">Fruits</option>
+                    <option value="vegetables">Vegetables</option>
+                    <option value="grains">Grains</option>
+                    <option value="dairy">Dairy</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="price">Price Range</label>
+                <select id="price">
+                    <option value="all">All Prices</option>
+                    <option value="low">Under ₹100</option>
+                    <option value="medium">₹100 - ₹300</option>
+                    <option value="high">Over ₹300</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="certification">Certification</label>
+                <select id="certification">
+                    <option value="all">All Certifications</option>
+                    <option value="organic">Organic Certified</option>
+                    <option value="iot">IoT Verified</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="product-grid" id="productGrid">
+            <!-- Products will be loaded here by JavaScript -->
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="process-grid">
+                <div class="process-card">
+                    <div class="process-icon">🌱</div>
+                    <h3>Farmers Grow Organic</h3>
+                    <p>Farmers cultivate organic produce using sustainable methods and IoT sensors to monitor crop health.</p>
+                </div>
+                <div class="process-card">
+                    <div class="process-icon">📊</div>
+                    <h3>IoT Sensors Monitor</h3>
+                    <p>Real-time data on soil moisture, temperature, and humidity is collected and analyzed.</p>
+                </div>
+                <div class="process-card">
+                    <div class="process-icon">⛓️</div>
+                    <h3>Blockchain Verification</h3>
+                    <p>Sensor data is securely stored on blockchain to ensure transparency and prevent tampering.</p>
+                </div>
+                <div class="process-card">
+                    <div class="process-icon">🛒</div>
+                    <h3>Customers Purchase</h3>
+                    <p>Customers buy verified organic products with complete transparency about their origin and quality.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Smart Organic Connect</h3>
+                <p>Merging IoT, Blockchain, and Organic Farming to build trust and transparency between farmers and consumers.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="marketplace.html">Marketplace</a></li>
+                    <li><a href="about.html">About Us</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul class="footer-links">
+                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="faq.html">FAQ</a></li>
+                    <li><a href="privacy.html">Privacy Policy</a></li>
+                    <li><a href="terms.html">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Contact Info</h3>
+                <ul class="footer-links">
+                    <li>Email: info@smartorganicconnect.com</li>
+                    <li>Phone: +91 98765 43210</li>
+                    <li>Address: Organic Tech Park, Bangalore, India</li>
+                </ul>
+            </div>
+        </div>
+        <div class="copyright">
+            &copy; 2023 Smart Organic Connect. All rights reserved.
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
