@@ -518,7 +518,34 @@ def list_orders(customer_id):
 def healthcheck():
     return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
 
-# Static file serving
+# ========== FIXED STATIC FILE SERVING ==========
+# Specific routes for main pages
+@app.route('/login')
+def serve_login():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'login.html')
+
+@app.route('/signup')
+def serve_signup():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'signup.html')
+
+@app.route('/marketplace')
+def serve_marketplace():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'marketplace.html')
+
+@app.route('/about')
+def serve_about():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'about.html')
+
+@app.route('/contact')
+def serve_contact():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'contact.html')
+
+# General static file serving
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_static(path):
@@ -526,9 +553,7 @@ def serve_static(path):
     
     # If path is empty, serve index.html
     if not path:
-        index_path = static_dir / 'index.html'
-        if index_path.exists():
-            return send_from_directory(static_dir, 'index.html')
+        return send_from_directory(static_dir, 'index.html')
     
     # Try to serve the requested file
     file_path = static_dir / path
@@ -536,11 +561,19 @@ def serve_static(path):
         return send_from_directory(static_dir, path)
     
     # Fallback to index.html for SPA routing
-    index_path = static_dir / 'index.html'
-    if index_path.exists():
-        return send_from_directory(static_dir, 'index.html')
+    return send_from_directory(static_dir, 'index.html')
+
+# Handle direct HTML file requests
+@app.route('/<string:page_name>.html')
+def serve_html_page(page_name):
+    static_dir = Path(__file__).parent / 'static'
+    file_path = static_dir / f'{page_name}.html'
     
-    return jsonify({'detail': 'File not found'}), 404
+    if file_path.exists():
+        return send_from_directory(static_dir, f'{page_name}.html')
+    
+    # Fallback to index.html for unknown pages
+    return send_from_directory(static_dir, 'index.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
