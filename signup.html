@@ -402,26 +402,26 @@
 
             <!-- Customer Signup Form -->
             <div id="customer-form" class="form-section active">
-                <form>
+                <form onsubmit="event.preventDefault(); handleCustomerSignup(event);">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="customer-firstname">First Name</label>
-                            <input type="text" id="customer-firstname" class="form-input" placeholder="Enter first name" required>
+                            <input type="text" id="customer-firstname" name="first_name" class="form-input" placeholder="Enter first name" required>
                         </div>
                         <div class="form-group">
                             <label for="customer-lastname">Last Name</label>
-                            <input type="text" id="customer-lastname" class="form-input" placeholder="Enter last name" required>
+                            <input type="text" id="customer-lastname" name="last_name" class="form-input" placeholder="Enter last name" required>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="customer-email">Email Address</label>
-                        <input type="email" id="customer-email" class="form-input" placeholder="Enter your email" required>
+                        <input type="email" id="customer-email" name="email" class="form-input" placeholder="Enter your email" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="customer-password">Password</label>
-                        <input type="password" id="customer-password" class="form-input" placeholder="Create a password" required>
+                        <input type="password" id="customer-password" name="password" class="form-input" placeholder="Create a password" required>
                     </div>
                     
                     <div class="form-group">
@@ -442,26 +442,26 @@
 
             <!-- Farmer Signup Form -->
             <div id="farmer-form" class="form-section">
-                <form>
+                <form onsubmit="return handleFarmerSignup(event);">
                     <div class="form-row">
                         <div class="form-group">
                             <label for="farmer-firstname">First Name</label>
-                            <input type="text" id="farmer-firstname" class="form-input" placeholder="Enter first name" required>
+                            <input type="text" id="farmer-firstname" name="first_name" class="form-input" placeholder="Enter first name" required>
                         </div>
                         <div class="form-group">
                             <label for="farmer-lastname">Last Name</label>
-                            <input type="text" id="farmer-lastname" class="form-input" placeholder="Enter last name" required>
+                            <input type="text" id="farmer-lastname" name="last_name" class="form-input" placeholder="Enter last name" required>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label for="farmer-email">Email Address</label>
-                        <input type="email" id="farmer-email" class="form-input" placeholder="Enter your email" required>
+                        <input type="email" id="farmer-email" name="email" class="form-input" placeholder="Enter your email" required>
                     </div>
                     
                     <div class="form-group">
                         <label for="farmer-password">Password</label>
-                        <input type="password" id="farmer-password" class="form-input" placeholder="Create a password" required>
+                        <input type="password" id="farmer-password" name="password" class="form-input" placeholder="Create a password" required>
                     </div>
                     
                     <div class="form-group">
@@ -474,15 +474,15 @@
                         <h4>Farm Information</h4>
                         <div class="form-group">
                             <label for="farm-name">Farm Name</label>
-                            <input type="text" id="farm-name" class="form-input" placeholder="Enter your farm name" required>
+                            <input type="text" id="farm-name" name="farm_name" class="form-input" placeholder="Enter your farm name" required>
                         </div>
                         <div class="form-group">
                             <label for="farm-location">Farm Location</label>
-                            <input type="text" id="farm-location" class="form-input" placeholder="City, State" required>
+                            <input type="text" id="farm-location" name="farm_location" class="form-input" placeholder="City, State" required>
                         </div>
                         <div class="form-group">
                             <label for="farm-type">Primary Products</label>
-                            <input type="text" id="farm-type" class="form-input" placeholder="e.g., Grains, Vegetables, Fruits" required>
+                            <input type="text" id="farm-type" name="primary_products" class="form-input" placeholder="e.g., Grains, Vegetables, Fruits" required>
                         </div>
                     </div>
 
@@ -495,6 +495,74 @@
 
                     <button type="submit" class="signup-btn">Create Farmer Account</button>
                 </form>
+                <script>
+                    function handleFarmerSignup(event) {
+                        event.preventDefault();
+                        const form = event.target;
+                        
+                        // Get form data
+                        const data = {
+                            first_name: form.querySelector('#farmer-firstname').value.trim(),
+                            last_name: form.querySelector('#farmer-lastname').value.trim(),
+                            email: form.querySelector('#farmer-email').value.trim(),
+                            password: form.querySelector('#farmer-password').value,
+                            role: 'farmer',
+                            farmer_profile: {
+                                farm_name: form.querySelector('#farm-name').value.trim(),
+                                farm_location: form.querySelector('#farm-location').value.trim(),
+                                primary_products: form.querySelector('#farm-type').value.trim()
+                            }
+                        };
+                        
+                        // Basic validation
+                        if (!data.first_name || !data.last_name || !data.email || !data.password || 
+                            !data.farmer_profile.farm_name || !data.farmer_profile.farm_location || 
+                            !data.farmer_profile.primary_products) {
+                            alert('Please fill in all required fields');
+                            return false;
+                        }
+
+                        // Show loading state
+                        const submitBtn = form.querySelector('button[type="submit"]');
+                        const originalText = submitBtn.textContent;
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = 'Creating Account...';
+
+                        console.log('Submitting data:', JSON.stringify(data, null, 2));
+
+                        // Submit the form
+                        fetch('/api/auth/signup', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                        .then(async response => {
+                            const responseData = await response.json();
+                            if (!response.ok) {
+                                console.error('Error response:', responseData);
+                                throw new Error(responseData.detail || 'Signup failed. Please try again.');
+                            }
+                            return responseData;
+                        })
+                        .then(data => {
+                            alert('Account created successfully! Please login.');
+                            window.location.href = 'login.html';
+                        })
+                        .catch(error => {
+                            console.error('Signup error:', error);
+                            alert(error.message || 'An error occurred during signup. Please try again.');
+                        })
+                        .finally(() => {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        });
+
+                        return false;
+                    }
+                </script>
             </div>
 
             <div class="additional-links">
@@ -504,38 +572,125 @@
     </section>
 
     <script>
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            // Remove any existing auth state
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            
+            // Initialize form handlers
+            setupFormHandlers();
+            
+            // Check if already logged in (shouldn't happen, but just in case)
+            const authUser = localStorage.getItem('authUser');
+            if (authUser) {
+                const user = JSON.parse(authUser);
+                const redirectUrl = user.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
+                window.location.href = redirectUrl;
+            }
+        });
+        
+        function setupFormHandlers() {
+            // Customer form handler
+            const customerForm = document.querySelector('#customer-form form');
+            if (customerForm) {
+                customerForm.onsubmit = handleCustomerSignup;
+            }
+            
+            // Farmer form handler
+            const farmerForm = document.querySelector('#farmer-form form');
+            if (farmerForm) {
+                farmerForm.onsubmit = handleFarmerSignup;
+            }
+        }
+        
+        function handleCustomerSignup(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                first_name: formData.get('first_name') || form.querySelector('[name="first_name"]')?.value || '',
+                last_name: formData.get('last_name') || form.querySelector('[name="last_name"]')?.value || '',
+                email: formData.get('email') || form.querySelector('[name="email"]')?.value || '',
+                password: formData.get('password') || form.querySelector('[name="password"]')?.value || '',
+                role: 'customer'
+            };
+            
+            // Basic validation
+            if (!data.first_name || !data.last_name || !data.email || !data.password) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            submitSignup(data);
+        }
+        
+        function handleFarmerSignup(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = {
+                first_name: formData.get('first_name') || form.querySelector('[name="first_name"]')?.value || '',
+                last_name: formData.get('last_name') || form.querySelector('[name="last_name"]')?.value || '',
+                email: formData.get('email') || form.querySelector('[name="email"]')?.value || '',
+                password: formData.get('password') || form.querySelector('[name="password"]')?.value || '',
+                role: 'farmer',
+                farmer_profile: {
+                    farm_name: formData.get('farm_name') || form.querySelector('[name="farm_name"]')?.value || '',
+                    farm_location: formData.get('farm_location') || form.querySelector('[name="farm_location"]')?.value || '',
+                    primary_products: formData.get('primary_products') || form.querySelector('[name="primary_products"]')?.value || ''
+                }
+            };
+            
+            // Basic validation
+            if (!data.first_name || !data.last_name || !data.email || !data.password || 
+                !data.farmer_profile.farm_name || !data.farmer_profile.farm_location || !data.farmer_profile.primary_products) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            submitSignup(data);
+        }
+        
+        async function submitSignup(data) {
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Signup failed');
+                }
+                
+                alert('Account created successfully! Please login.');
+                window.location.href = 'login.html';
+                
+            } catch (error) {
+                console.error('Signup error:', error);
+                alert(error.message || 'An error occurred during signup. Please try again.');
+            }
+        }
+        
+        // Tab switching functionality
         function switchTab(type) {
-            // Update active tab
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Show appropriate form
+            // Hide all forms and remove active class from tabs
             document.querySelectorAll('.form-section').forEach(section => {
                 section.classList.remove('active');
             });
-            document.getElementById(type + '-form').classList.add('active');
-        }
-
-        // Password confirmation validation
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                const password = form.querySelector('input[type="password"]');
-                const confirmPassword = form.querySelectorAll('input[type="password"]')[1];
-                
-                if (confirmPassword) {
-                    confirmPassword.addEventListener('input', function() {
-                        if (password.value !== confirmPassword.value) {
-                            confirmPassword.style.borderColor = 'var(--danger)';
-                        } else {
-                            confirmPassword.style.borderColor = 'var(--success)';
-                        }
-                    });
-                }
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
             });
-        });
+            
+            // Show selected form and activate tab
+            document.getElementById(`${type}-form`).classList.add('active');
+            document.querySelector(`.tab[onclick*="${type}"]`).classList.add('active');
+        }
     </script>
 </body>
 </html>

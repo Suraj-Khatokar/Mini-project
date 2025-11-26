@@ -270,6 +270,31 @@
             transform: translateY(-2px);
         }
 
+        .error-message {
+            color: #ff4444;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+            border-left: 3px solid #ff4444;
+        }
+
+        .btn-loading {
+            display: none;
+        }
+
+        .btn-text {
+            display: inline-block;
+        }
+
+        .btn-text.hide {
+            display: none;
+        }
+
+        .fa-spinner {
+            margin-right: 8px;
+        }
+
         .additional-links {
             display: flex;
             justify-content: space-between;
@@ -332,6 +357,24 @@
             <a href="login.html" class="btn btn-outline">Login</a>
             <a href="signup.html" class="btn btn-primary">Sign Up</a>
         </div>
+        <!-- User Menu (initially hidden) -->
+        <div id="user-menu" class="user-menu">
+            <a href="cart.html" class="cart-icon">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="cart-count">0</span>
+            </a>
+            <div class="user-dropdown">
+                <button class="user-btn">
+                    <span class="user-name"></span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="profile.html" class="dropdown-item">My Profile</a>
+                    <a href="orders.html" class="dropdown-item">My Orders</a>
+                    <button id="logout-btn" class="dropdown-item">Logout</button>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <!-- Login Section -->
@@ -347,17 +390,26 @@
 
             <!-- Customer Login Form -->
             <div id="customer-form" class="form-section active">
-                <form>
+                <form id="customer-login-form">
                     <div class="form-group">
                         <label for="customer-email">Email Address</label>
-                        <input type="email" id="customer-email" class="form-input" placeholder="Enter your email" required>
+                        <input type="email" id="customer-email" name="email" class="form-input" 
+                               placeholder="Enter your email" required autocomplete="email">
                     </div>
                     <div class="form-group">
                         <label for="customer-password">Password</label>
-                        <input type="password" id="customer-password" class="form-input" placeholder="Enter your password" required>
+                        <input type="password" id="customer-password" name="password" 
+                               class="form-input" placeholder="Enter your password" required 
+                               autocomplete="current-password">
                     </div>
-                    <button type="submit" class="login-btn">Login as Customer</button>
+                    <button type="submit" class="login-btn">
+                        <span class="btn-text">Login as Customer</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Signing in...
+                        </span>
+                    </button>
                 </form>
+                <div id="login-error" class="error-message" style="display: none;"></div>
             </div>
 
             <!-- Farmer Login Form -->
@@ -386,16 +438,38 @@
         function switchTab(type) {
             // Update active tab
             document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
+                tab.classList.toggle('active', tab.textContent.toLowerCase().includes(type));
             });
-            event.target.classList.add('active');
-
-            // Show appropriate form
+            
+            // Show the corresponding form
             document.querySelectorAll('.form-section').forEach(section => {
-                section.classList.remove('active');
+                section.classList.toggle('active', section.id === `${type}-form`);
             });
-            document.getElementById(type + '-form').classList.add('active');
         }
     </script>
+    <!-- Add Font Awesome for loading spinner -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- Scripts -->
+    <script src="/static/js/cart.js"></script>
+    <script src="/static/js/nav-auth.js"></script>
+    <script src="/api.js"></script>
+    <script src="/auth.js"></script>
+    <script type="module">
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const authUser = localStorage.getItem('authUser');
+            if (authUser) {
+                const user = JSON.parse(authUser);
+                const redirectUrl = user.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
+                window.location.href = redirectUrl;
+            }
+        });
+    </script>
+    <!-- Add these just before the closing </body> tag -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/static/js/api.js" type="module"></script>
+<script src="/static/js/cart.js"></script>
+<script src="/static/js/nav-auth.js"></script>
 </body>
 </html>
