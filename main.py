@@ -14,9 +14,25 @@ from typing import Optional, List
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    "DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'smartorganic.db'}"
-)
+
+# MySQL configuration with dummy credentials
+MYSQL_CONFIG = {
+    'user': 'root',
+    'password': 'Kesavan%402005',
+    'host': 'localhost',
+    'port': '3306',
+    'database': 'smartorganic',
+}
+
+# Default to MySQL, fallback to SQLite if MySQL is not available
+SQLITE_URI = f"sqlite:///{Path(__file__).parent / 'smartorganic.db'}"
+MYSQL_URI = f"mysql+pymysql://{MYSQL_CONFIG['user']}:{MYSQL_CONFIG['password']}@{MYSQL_CONFIG['host']}:{MYSQL_CONFIG['port']}/{MYSQL_CONFIG['database']}"
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', MYSQL_URI)
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_recycle': 280,
+    'pool_pre_ping': True,
+}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change in production
 
@@ -574,6 +590,17 @@ def serve_html_page(page_name):
     
     # Fallback to index.html for unknown pages
     return send_from_directory(static_dir, 'index.html')
+
+with app.app_context():
+    try:
+        print("Creating database tables...")
+        db.create_all()
+        print("Seeding products...")
+        seed_products()
+        print("Database initialized successfully!")
+    except Exception as e:
+        print(f"Error initializing database: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
