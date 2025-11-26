@@ -1,417 +1,232 @@
-from __future__ import annotations
-
-import os
+from flask import Flask, request, jsonify, send_from_directory
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func, text
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum
+import os
 from pathlib import Path
-from typing import Generator, List, Optional
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import jwt
+import logging
+from typing import Optional, List
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, Security
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, constr
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    Enum as SqlEnum,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    create_engine,
-    func,
+# Initialize Flask app
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    "DATABASE_URL", f"sqlite:///{Path(__file__).parent / 'smartorganic.db'}"
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Session, relationship, sessionmaker
-from passlib.context import CryptContext
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change in production
 
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_SQLITE_URL = f"sqlite:///{BASE_DIR / 'smartorganic.db'}"
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "mysql+pymysql://user:Kesavan%402005@localhost:3306/smartorganic"
-)
+# Initialize database
+db = SQLAlchemy(app)
 
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        DATABASE_URL, connect_args={"check_same_thread": False}, future=True
-    )
-else:
-    engine = create_engine(
-        DATABASE_URL,
-        future=True,
-        pool_pre_ping=True,
-    )
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
-Base = declarative_base()
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class UserRole(str, Enum):
     customer = "customer"
     farmer = "farmer"
 
-
-class User(Base):
+# Database Models
+class User(db.Model):
     __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    first_name = Column(String(100), nullable=False)
-    last_name = Column(String(100), nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(SqlEnum(UserRole), nullable=False, default=UserRole.customer)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True, index=True)
+    first_name = db.Column(db.String(100), nullable=False)
+    last_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(255), unique=True, index=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.customer)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     farmer_profile = relationship("FarmerProfile", back_populates="user", uselist=False)
     orders = relationship("Order", back_populates="customer")
 
-
-class FarmerProfile(Base):
+class FarmerProfile(db.Model):
     __tablename__ = "farmer_profiles"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
-    farm_name = Column(String(255), nullable=False)
-    farm_location = Column(String(255), nullable=False)
-    primary_products = Column(String(255), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    farm_name = db.Column(db.String(255), nullable=False)
+    farm_location = db.Column(db.String(255), nullable=False)
+    primary_products = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="farmer_profile")
     products = relationship("Product", back_populates="farmer")
 
-
-class Product(Base):
+class Product(db.Model):
     __tablename__ = "products"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
-    price_inr = Column(Integer, nullable=False)
-    unit = Column(String(50), default="kg")
-    description = Column(Text, nullable=False)
-    image_url = Column(String(500), nullable=False)
-    organic_certified = Column(Boolean, default=True)
-    iot_verified = Column(Boolean, default=True)
-    farmer_id = Column(Integer, ForeignKey("farmer_profiles.id", ondelete="SET NULL"))
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(100), nullable=False)
+    price_inr = db.Column(db.Integer, nullable=False)
+    unit = db.Column(db.String(50), default="kg")
+    description = db.Column(db.Text, nullable=False)
+    image_url = db.Column(db.String(500), nullable=False)
+    organic_certified = db.Column(db.Boolean, default=True)
+    iot_verified = db.Column(db.Boolean, default=True)
+    farmer_id = db.Column(db.Integer, db.ForeignKey("farmer_profiles.id", ondelete="SET NULL"))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     farmer = relationship("FarmerProfile", back_populates="products")
-    sensor_readings = relationship(
-        "SensorReading",
-        back_populates="product",
-        order_by="desc(SensorReading.recorded_at)",
-        cascade="all, delete-orphan",
-    )
+    sensor_readings = relationship("SensorReading", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
 
-
-class SensorReading(Base):
+class SensorReading(db.Model):
     __tablename__ = "sensor_readings"
-
-    id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"))
-    soil_moisture = Column(Float, nullable=False)
-    temperature = Column(Float, nullable=False)
-    humidity = Column(Float, nullable=False)
-    status = Column(String(255), default="Optimal")
-    recorded_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id", ondelete="CASCADE"))
+    soil_moisture = db.Column(db.Float, nullable=False)
+    temperature = db.Column(db.Float, nullable=False)
+    humidity = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(255), default="Optimal")
+    recorded_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     product = relationship("Product", back_populates="sensor_readings")
 
-
-class ContactMessage(Base):
+class ContactMessage(db.Model):
     __tablename__ = "contact_messages"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    resolved = db.Column(db.Boolean, default=False)
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=False)
-    subject = Column(String(255), nullable=False)
-    message = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    resolved = Column(Boolean, default=False)
-
-
-class Order(Base):
+class Order(db.Model):
     __tablename__ = "orders"
-
-    id = Column(Integer, primary_key=True)
-    customer_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
-    total_price_inr = Column(Integer, nullable=False)
-    status = Column(String(50), default="pending")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
+    total_price_inr = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(50), default="pending")
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     customer = relationship("User", back_populates="orders")
-    items = relationship(
-        "OrderItem", back_populates="order", cascade="all, delete-orphan"
-    )
+    items = relationship("OrderItem", back_populates="order")
 
-
-class OrderItem(Base):
+class OrderItem(db.Model):
     __tablename__ = "order_items"
-
-    id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"))
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"))
-    quantity = Column(Integer, nullable=False)
-    unit_price_inr = Column(Integer, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("orders.id", ondelete="CASCADE"))
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id", ondelete="SET NULL"))
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price_inr = db.Column(db.Integer, nullable=False)
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
 
-
-def create_db() -> None:
-    Base.metadata.create_all(bind=engine)
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
+# Helper functions
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
+    return generate_password_hash(password)
 
 def verify_password(plain_password: str, hashed: str) -> bool:
-    return pwd_context.verify(plain_password, hashed)
+    return check_password_hash(hashed, plain_password)
 
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            token = request.headers['Authorization'].split(" ")[1] if "Bearer" in request.headers['Authorization'] else None
+        
+        if not token or not token.startswith("mock-token-"):
+            return jsonify({'message': 'Invalid authentication credentials'}), 401
+        
+        try:
+            user_id = int(token.replace("mock-token-", ""))
+            current_user = User.query.get(user_id)
+            if not current_user:
+                return jsonify({'message': 'User not found'}), 404
+        except Exception:
+            return jsonify({'message': 'Invalid authentication credentials'}), 401
+        
+        return f(current_user, *args, **kwargs)
+    return decorated
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    if not token or not token.startswith("mock-token-"):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+# Serialization helpers
+def user_to_dict(user):
+    return {
+        'id': user.id,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'email': user.email,
+        'role': user.role.value,
+        'created_at': user.created_at.isoformat() if user.created_at else None,
+        'farmer_profile': farmer_profile_to_dict(user.farmer_profile) if user.farmer_profile else None
+    }
 
-    try:
-        user_id = int(token.replace("mock-token-", ""))
-        user = db.query(User).filter(User.id == user_id).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found",
-            )
-        return user
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+def farmer_profile_to_dict(profile):
+    if not profile:
+        return None
+    return {
+        'id': profile.id,
+        'farm_name': profile.farm_name,
+        'farm_location': profile.farm_location,
+        'primary_products': profile.primary_products,
+        'created_at': profile.created_at.isoformat() if profile.created_at else None
+    }
 
+def product_to_dict(product):
+    return {
+        'id': product.id,
+        'name': product.name,
+        'category': product.category,
+        'price_inr': product.price_inr,
+        'unit': product.unit,
+        'description': product.description,
+        'image_url': product.image_url,
+        'organic_certified': product.organic_certified,
+        'iot_verified': product.iot_verified,
+        'farmer_id': product.farmer_id,
+        'created_at': product.created_at.isoformat() if product.created_at else None,
+        'farmer': farmer_profile_to_dict(product.farmer) if product.farmer else None,
+        'sensor_readings': [sensor_reading_to_dict(sr) for sr in product.sensor_readings]
+    }
 
-# --------------------- Pydantic Schemas ---------------------
-class FarmerProfileIn(BaseModel):
-    farm_name: str
-    farm_location: str
-    primary_products: str
+def sensor_reading_to_dict(sensor_reading):
+    return {
+        'soil_moisture': sensor_reading.soil_moisture,
+        'temperature': sensor_reading.temperature,
+        'humidity': sensor_reading.humidity,
+        'status': sensor_reading.status,
+        'recorded_at': sensor_reading.recorded_at.isoformat() if sensor_reading.recorded_at else None
+    }
 
+def contact_message_to_dict(message):
+    return {
+        'id': message.id,
+        'name': message.name,
+        'email': message.email,
+        'subject': message.subject,
+        'message': message.message,
+        'created_at': message.created_at.isoformat() if message.created_at else None,
+        'resolved': message.resolved
+    }
 
-class FarmerProfileOut(FarmerProfileIn):
-    id: int
+def order_to_dict(order):
+    return {
+        'id': order.id,
+        'customer_id': order.customer_id,
+        'total_price_inr': order.total_price_inr,
+        'status': order.status,
+        'created_at': order.created_at.isoformat() if order.created_at else None,
+        'items': [order_item_to_dict(item) for item in order.items]
+    }
 
-    class Config:
-        orm_mode = True
+def order_item_to_dict(item):
+    return {
+        'product_id': item.product_id,
+        'quantity': item.quantity,
+        'unit_price_inr': item.unit_price_inr
+    }
 
-
-class UserOut(BaseModel):
-    id: int
-    first_name: str
-    last_name: str
-    email: EmailStr
-    role: UserRole
-    created_at: datetime
-    farmer_profile: Optional[FarmerProfileOut] = None
-
-    class Config:
-        orm_mode = True
-
-
-class SignupRequest(BaseModel):
-    first_name: str
-    last_name: str
-    email: EmailStr
-    password: constr(min_length=6)
-    role: UserRole = UserRole.customer
-    farmer_profile: Optional[FarmerProfileIn] = None
-
-
-class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
-    role: Optional[UserRole] = None
-
-
-class AuthResponse(BaseModel):
-    message: str
-    user: UserOut
-    token: str
-
-
-class SensorReadingOut(BaseModel):
-    soil_moisture: float
-    temperature: float
-    humidity: float
-    status: str
-    recorded_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class SensorReadingCreate(BaseModel):
-    soil_moisture: float
-    temperature: float
-    humidity: float
-    status: str = "Optimal"
-
-
-class ProductBase(BaseModel):
-    name: str
-    category: str
-    price_inr: int
-    unit: str = "kg"
-    description: str
-    image_url: str
-    organic_certified: bool = True
-    iot_verified: bool = True
-    farmer_id: Optional[int] = None
-
-    class Config:
-        orm_mode = True
-
-
-class ProductOut(ProductBase):
-    id: int
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
-class ProductDetail(ProductOut):
-    farmer: Optional[FarmerProfileOut] = None
-    sensor_readings: List[SensorReadingOut] = Field(default_factory=list)
-
-
-class ProductFilter(BaseModel):
-    category: Optional[str] = None
-    price_band: Optional[str] = Field(
-        default=None, description="Expected values: low, medium, high"
-    )
-    certification: Optional[str] = Field(
-        default=None, description="organic or iot maps to boolean flags"
-    )
-
-
-class ContactMessageIn(BaseModel):
-    name: str
-    email: EmailStr
-    subject: str
-    message: str
-
-
-class ContactMessageOut(ContactMessageIn):
-    id: int
-    created_at: datetime
-    resolved: bool
-
-    class Config:
-        orm_mode = True
-
-
-class OrderItemIn(BaseModel):
-    product_id: int
-    quantity: int = Field(gt=0)
-
-
-class OrderCreate(BaseModel):
-    customer_id: int
-    items: List[OrderItemIn]
-
-
-class OrderItemOut(BaseModel):
-    product_id: int
-    quantity: int
-    unit_price_inr: int
-
-    class Config:
-        orm_mode = True
-
-
-class OrderOut(BaseModel):
-    id: int
-    customer_id: Optional[int]
-    total_price_inr: int
-    status: str
-    created_at: datetime
-    items: List[OrderItemOut]
-
-    class Config:
-        orm_mode = True
-
-
-# --------------------- FastAPI Application ---------------------
-app = FastAPI(
-    title="Smart Organic Connect API",
-    description="Backend service for IoT + Blockchain driven marketplace.",
-    version="1.0.0",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-from fastapi.staticfiles import StaticFiles
-
-# Mount static files directory
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
-
-@app.middleware("http")
-async def serve_static_assets(request: Request, call_next):
-    path = request.url.path
-    
-    # Skip API and docs paths
-    if path.startswith("/api") or path.startswith("/docs") or path.startswith("/openapi") or path.startswith("/static"):
-        return await call_next(request)
-    
-    # Try to find the file in the static directory first
-    static_path = BASE_DIR / "static" / path.lstrip("/")
-    if static_path.is_file():
-        return FileResponse(static_path)
-    
-    # Then try the root directory
-    root_path = BASE_DIR / path.lstrip("/")
-    if root_path.is_file():
-        return FileResponse(root_path)
-    
-    # If not found, serve index.html for SPA routing
-    index_path = BASE_DIR / "index.html"
-    if index_path.exists():
-        return FileResponse(index_path)
-    
-    # If index.html doesn't exist, continue with the request
-    return await call_next(request)
-
-
-def seed_products(db: Session) -> None:
-    if db.query(Product).count() > 0:
+# Seed data
+def seed_products():
+    if Product.query.count() > 0:
         return
 
     sample_farmer = FarmerProfile(
@@ -426,8 +241,8 @@ def seed_products(db: Session) -> None:
         farm_location="Bangalore, India",
         primary_products="Vegetables, Fruits",
     )
-    db.add(sample_farmer)
-    db.flush()
+    db.session.add(sample_farmer)
+    db.session.flush()
 
     sample_products = [
         {
@@ -489,13 +304,10 @@ def seed_products(db: Session) -> None:
     ]
 
     for product_data in sample_products:
-        product = Product(
-            farmer_id=sample_farmer.id,
-            **product_data,
-        )
-        db.add(product)
-        db.flush()
-        db.add(
+        product = Product(farmer_id=sample_farmer.id, **product_data)
+        db.session.add(product)
+        db.session.flush()
+        db.session.add(
             SensorReading(
                 product_id=product.id,
                 soil_moisture=67.5,
@@ -505,251 +317,230 @@ def seed_products(db: Session) -> None:
             )
         )
 
-    db.commit()
+    db.session.commit()
 
+# Initialize database
+with app.app_context():
+    db.create_all()
+    seed_products()
 
-@app.on_event("startup")
-def on_startup() -> None:
-    create_db()
-    with SessionLocal() as db:
-        seed_products(db)
+# CORS handling
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
-
-# --------------------- Routes ---------------------
-@app.post("/api/auth/signup", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> UserOut:
+# Routes
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
     try:
+        data = request.get_json()
+        
         # Check if user already exists
-        existing_user = db.query(User).filter(User.email == payload.email.lower()).first()
+        existing_user = User.query.filter_by(email=data.get('email').lower()).first()
         if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered."
-            )
+            return jsonify({'detail': 'Email already registered.'}), 400
 
         # Create new user
         user = User(
-            first_name=payload.first_name.strip(),
-            last_name=payload.last_name.strip(),
-            email=payload.email.lower(),
-            password_hash=hash_password(payload.password),
-            role=payload.role,
+            first_name=data.get('first_name', '').strip(),
+            last_name=data.get('last_name', '').strip(),
+            email=data.get('email', '').lower(),
+            password_hash=hash_password(data.get('password', '')),
+            role=UserRole(data.get('role', 'customer'))
         )
-        db.add(user)
-        db.flush()  # Flush to get the user ID
+        db.session.add(user)
+        db.session.flush()
 
         # Create farmer profile if role is farmer
-        if payload.role == UserRole.farmer:
-            if not payload.farmer_profile:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Farmer profile details are required for farmer sign up.",
-                )
-            profile = FarmerProfile(user_id=user.id, **payload.farmer_profile.dict())
-            db.add(profile)
+        if user.role == UserRole.farmer:
+            farmer_profile_data = data.get('farmer_profile')
+            if not farmer_profile_data:
+                return jsonify({'detail': 'Farmer profile details are required for farmer sign up.'}), 400
+            
+            profile = FarmerProfile(
+                user_id=user.id,
+                farm_name=farmer_profile_data.get('farm_name', ''),
+                farm_location=farmer_profile_data.get('farm_location', ''),
+                primary_products=farmer_profile_data.get('primary_products', '')
+            )
+            db.session.add(profile)
 
-        db.commit()
-        db.refresh(user)
-        return user
+        db.session.commit()
+        return jsonify(user_to_dict(user)), 201
         
     except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating user: {str(e)}"
-        )
+        db.session.rollback()
+        return jsonify({'detail': f'Error creating user: {str(e)}'}), 500
 
-
-@app.post("/api/auth/login", response_model=AuthResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> AuthResponse:
+@app.route('/api/auth/login', methods=['POST'])
+def login():
     try:
-        # Find user by email (case-insensitive search)
-        user = db.query(User).filter(
-            func.lower(User.email) == payload.email.lower()
-        ).first()
+        data = request.get_json()
+        email = data.get('email', '').lower()
+        password = data.get('password', '')
+        role = data.get('role')
+        
+        # Find user by email
+        user = User.query.filter(func.lower(User.email) == email).first()
         
         # Verify user exists and password is correct
-        if not user or not verify_password(payload.password, user.password_hash):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password."
-            )
+        if not user or not verify_password(password, user.password_hash):
+            return jsonify({'detail': 'Invalid email or password.'}), 401
 
         # If role is specified, verify it matches
-        if payload.role and user.role != payload.role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Please login as a {payload.role} to continue."
-            )
+        if role and user.role != UserRole(role):
+            return jsonify({'detail': f'Please login as a {role} to continue.'}), 403
 
-        # Generate token (in production, use proper JWT)
+        # Generate token
         token = f"mock-token-{user.id}"
         
-        # Convert user to Pydantic model for proper serialization
-        user_data = UserOut.from_orm(user)
+        return jsonify({
+            'message': 'Login successful',
+            'user': user_to_dict(user),
+            'token': token
+        })
         
-        return {
-            "message": "Login successful",
-            "user": user_data.dict(),
-            "token": token
-        }
-        
-    except HTTPException as he:
-        # Re-raise HTTP exceptions as is
-        raise
     except Exception as e:
-        # Log the error for debugging
-        logger.error(f"Login error for {payload.email}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred during login. Please try again."
-        )
+        logger.error(f"Login error for {data.get('email')}: {str(e)}")
+        return jsonify({'detail': 'An error occurred during login. Please try again.'}), 500
 
+@app.route('/api/products', methods=['GET'])
+def list_products():
+    try:
+        category = request.args.get('category')
+        price = request.args.get('price')
+        certification = request.args.get('certification')
+        
+        query = Product.query
 
-@app.get("/api/products", response_model=List[ProductOut])
-def list_products(
-    category: Optional[str] = Query(
-        default=None, description="Category filter such as fruits, vegetables, grains."
-    ),
-    price: Optional[str] = Query(
-        default=None, description="low (<100), medium (100-300), high (>300)"
-    ),
-    certification: Optional[str] = Query(
-        default=None, description="organic or iot for badges"
-    ),
-    db: Session = Depends(get_db),
-) -> List[ProductOut]:
-    query = db.query(Product)
+        if category and category != "all":
+            query = query.filter(Product.category == category)
 
-    if category and category != "all":
-        query = query.filter(Product.category == category)
+        if price and price != "all":
+            if price == "low":
+                query = query.filter(Product.price_inr < 100)
+            elif price == "medium":
+                query = query.filter(Product.price_inr.between(100, 300))
+            elif price == "high":
+                query = query.filter(Product.price_inr > 300)
 
-    if price and price != "all":
-        if price == "low":
-            query = query.filter(Product.price_inr < 100)
-        elif price == "medium":
-            query = query.filter(Product.price_inr.between(100, 300))
-        elif price == "high":
-            query = query.filter(Product.price_inr > 300)
+        if certification and certification != "all":
+            if certification == "organic":
+                query = query.filter(Product.organic_certified.is_(True))
+            elif certification == "iot":
+                query = query.filter(Product.iot_verified.is_(True))
 
-    if certification and certification != "all":
-        if certification == "organic":
-            query = query.filter(Product.organic_certified.is_(True))
-        elif certification == "iot":
-            query = query.filter(Product.iot_verified.is_(True))
+        products = query.order_by(Product.created_at.desc()).all()
+        return jsonify([product_to_dict(product) for product in products])
+    
+    except Exception as e:
+        return jsonify({'detail': str(e)}), 500
 
-    return query.order_by(Product.created_at.desc()).all()
-
-
-@app.get("/api/products/{product_id}", response_model=ProductDetail)
-def get_product(product_id: int, db: Session = Depends(get_db)) -> ProductDetail:
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found.")
-    return product
-
-
-@app.post("/api/products", response_model=ProductDetail, status_code=status.HTTP_201_CREATED)
-def create_product(payload: ProductBase, db: Session = Depends(get_db)) -> ProductDetail:
-    if payload.farmer_id:
-        farmer = db.query(FarmerProfile).filter_by(id=payload.farmer_id).first()
-        if not farmer:
-            raise HTTPException(status_code=404, detail="Farmer profile not found.")
-
-    product = Product(**payload.dict())
-    db.add(product)
-    db.commit()
-    db.refresh(product)
-    return product
-
-
-@app.post(
-    "/api/products/{product_id}/sensor",
-    response_model=SensorReadingOut,
-    status_code=status.HTTP_201_CREATED,
-)
-def add_sensor_reading(
-    product_id: int, payload: SensorReadingCreate, db: Session = Depends(get_db)
-) -> SensorReadingOut:
-    product = db.query(Product).filter_by(id=product_id).first()
-    if not product:
-        raise HTTPException(status_code=404, detail="Product not found.")
-
-    sensor_reading = SensorReading(product_id=product_id, **payload.dict())
-    db.add(sensor_reading)
-    db.commit()
-    db.refresh(sensor_reading)
-    return sensor_reading
-
-
-@app.post("/api/contact", response_model=ContactMessageOut, status_code=status.HTTP_201_CREATED)
-def submit_contact_form(
-    payload: ContactMessageIn, db: Session = Depends(get_db)
-) -> ContactMessageOut:
-    message = ContactMessage(**payload.dict())
-    db.add(message)
-    db.commit()
-    db.refresh(message)
-    return message
-
-
-@app.post("/api/orders", response_model=OrderOut, status_code=status.HTTP_201_CREATED)
-def create_order(payload: OrderCreate, db: Session = Depends(get_db)) -> OrderOut:
-    if not payload.items:
-        raise HTTPException(status_code=400, detail="Order requires at least one item.")
-
-    customer = db.query(User).filter_by(id=payload.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found.")
-
-    total_price = 0
-    order_items: List[OrderItem] = []
-
-    for item in payload.items:
-        product = db.query(Product).filter_by(id=item.product_id).first()
+@app.route('/api/products/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    try:
+        product = Product.query.get(product_id)
         if not product:
-            raise HTTPException(
-                status_code=404, detail=f"Product {item.product_id} not found."
-            )
-        line_price = product.price_inr * item.quantity
-        total_price += line_price
-        order_items.append(
-            OrderItem(
+            return jsonify({'detail': 'Product not found'}), 404
+        return jsonify(product_to_dict(product))
+    except Exception as e:
+        return jsonify({'detail': str(e)}), 500
+
+@app.route('/api/contact', methods=['POST'])
+def submit_contact_form():
+    try:
+        data = request.get_json()
+        message = ContactMessage(
+            name=data.get('name', ''),
+            email=data.get('email', ''),
+            subject=data.get('subject', ''),
+            message=data.get('message', '')
+        )
+        db.session.add(message)
+        db.session.commit()
+        return jsonify(contact_message_to_dict(message)), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
+
+@app.route('/api/orders', methods=['POST'])
+def create_order():
+    try:
+        data = request.get_json()
+        items = data.get('items', [])
+        customer_id = data.get('customer_id')
+        
+        if not items:
+            return jsonify({'detail': 'Order requires at least one item.'}), 400
+
+        customer = User.query.get(customer_id)
+        if not customer:
+            return jsonify({'detail': 'Customer not found.'}), 404
+
+        total_price = 0
+        order_items = []
+
+        for item in items:
+            product = Product.query.get(item.get('product_id'))
+            if not product:
+                return jsonify({'detail': f"Product {item.get('product_id')} not found."}), 404
+            
+            quantity = item.get('quantity', 1)
+            line_price = product.price_inr * quantity
+            total_price += line_price
+            order_items.append(OrderItem(
                 product_id=product.id,
-                quantity=item.quantity,
-                unit_price_inr=product.price_inr,
-            )
-        )
+                quantity=quantity,
+                unit_price_inr=product.price_inr
+            ))
 
-    order = Order(customer_id=customer.id, total_price_inr=total_price, items=order_items)
-    db.add(order)
-    db.commit()
-    db.refresh(order)
-    return order
+        order = Order(customer_id=customer.id, total_price_inr=total_price, items=order_items)
+        db.session.add(order)
+        db.session.commit()
+        return jsonify(order_to_dict(order)), 201
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
 
+@app.route('/api/orders/<int:customer_id>', methods=['GET'])
+def list_orders(customer_id):
+    try:
+        orders = Order.query.filter_by(customer_id=customer_id).order_by(Order.created_at.desc()).all()
+        return jsonify([order_to_dict(order) for order in orders])
+    except Exception as e:
+        return jsonify({'detail': str(e)}), 500
 
-@app.get("/api/orders/{customer_id}", response_model=List[OrderOut])
-def list_orders(customer_id: int, db: Session = Depends(get_db)) -> List[OrderOut]:
-    return (
-        db.query(Order)
-        .filter(Order.customer_id == customer_id)
-        .order_by(Order.created_at.desc())
-        .all()
-    )
+@app.route('/health', methods=['GET'])
+def healthcheck():
+    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
 
+# Static file serving
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_static(path):
+    static_dir = Path(__file__).parent / 'static'
+    
+    # If path is empty, serve index.html
+    if not path:
+        index_path = static_dir / 'index.html'
+        if index_path.exists():
+            return send_from_directory(static_dir, 'index.html')
+    
+    # Try to serve the requested file
+    file_path = static_dir / path
+    if file_path.exists() and file_path.is_file():
+        return send_from_directory(static_dir, path)
+    
+    # Fallback to index.html for SPA routing
+    index_path = static_dir / 'index.html'
+    if index_path.exists():
+        return send_from_directory(static_dir, 'index.html')
+    
+    return jsonify({'detail': 'File not found'}), 404
 
-@app.get("/health")
-def healthcheck() -> dict:
-    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
-
-
-@app.get("/", include_in_schema=False)
-def serve_index() -> FileResponse:
-    index_path = BASE_DIR / "index.html"
-    if not index_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Front-end index.html file is missing.",
-        )
-    return FileResponse(index_path)
-
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=8000)
