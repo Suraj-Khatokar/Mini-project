@@ -503,39 +503,52 @@
         </div>
     </section>
 
-    <script>
-        function switchTab(type) {
-            // Update active tab
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Show appropriate form
-            document.querySelectorAll('.form-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(type + '-form').classList.add('active');
-        }
-
-        // Password confirmation validation
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                const password = form.querySelector('input[type="password"]');
-                const confirmPassword = form.querySelectorAll('input[type="password"]')[1];
-                
-                if (confirmPassword) {
-                    confirmPassword.addEventListener('input', function() {
-                        if (password.value !== confirmPassword.value) {
-                            confirmPassword.style.borderColor = 'var(--danger)';
-                        } else {
-                            confirmPassword.style.borderColor = 'var(--success)';
-                        }
-                    });
-                }
-            });
+   <script>
+    function switchTab(type) {
+        // Update active tab
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
         });
-    </script>
+        event.target.classList.add('active');
+
+        // Show appropriate form
+        document.querySelectorAll('.form-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        document.getElementById(type + '-form').classList.add('active');
+    }
+
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            const password = form.querySelector('input[type="password"]');
+            const confirmPassword = form.querySelectorAll('input[type="password"]')[1];
+            
+            if (confirmPassword) {
+                confirmPassword.addEventListener('input', function() {
+                    if (password.value !== confirmPassword.value) {
+                        confirmPassword.style.borderColor = 'var(--danger)';
+                    } else {
+                        confirmPassword.style.borderColor = 'var(--success)';
+                    }
+                });
+            }
+        });
+
+        // ADD THIS PART - Form submission handlers
+        document.querySelector('#customer-form form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Add your signup validation here
+            window.location.href = 'dashboard.html';  // Redirect customers to customer dashboard
+        });
+
+        document.querySelector('#farmer-form form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Add your signup validation here
+            window.location.href = 'farmer-dashboard.html';  // Redirect farmers to farmer dashboard
+        });
+    });
+</script>
 </body>
 </html>
