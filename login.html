@@ -332,6 +332,7 @@
             <a href="login.html" class="btn btn-outline">Login</a>
             <a href="signup.html" class="btn btn-primary">Sign Up</a>
         </div>
+        
     </nav>
 
     <!-- Login Section -->
@@ -382,7 +383,7 @@
         </div>
     </section>
 
-    <script>
+       <script>
         function switchTab(type) {
             // Update active tab
             document.querySelectorAll('.tab').forEach(tab => {
@@ -396,6 +397,17 @@
             });
             document.getElementById(type + '-form').classList.add('active');
         }
+
+        // ADD THIS CODE RIGHT HERE - after switchTab function
+        document.querySelector('#customer-form form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.location.href = 'dashboard.html';
+        });
+
+        document.querySelector('#farmer-form form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.location.href = 'farmer-dashboard.html';
+        });
     </script>
 </body>
 </html>
