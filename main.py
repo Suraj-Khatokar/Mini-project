@@ -170,7 +170,7 @@ def user_to_dict(user):
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
-        'role': user.role.value,
+        'role': user.role.value if user.role else 'customer',
         'created_at': user.created_at.isoformat() if user.created_at else None,
         'farmer_profile': farmer_profile_to_dict(user.farmer_profile) if user.farmer_profile else None
     }
@@ -245,6 +245,7 @@ def seed_products():
     if Product.query.count() > 0:
         return
 
+    # Create sample farmer
     sample_farmer = FarmerProfile(
         user=User(
             first_name="Rajesh",
@@ -258,6 +259,17 @@ def seed_products():
         primary_products="Vegetables, Fruits",
     )
     db.session.add(sample_farmer)
+    db.session.flush()
+    
+    # Create sample customer
+    sample_customer = User(
+        first_name="John",
+        last_name="Doe",
+        email="customer@smartorganic.com",
+        password_hash=hash_password("password123"),
+        role=UserRole.customer,
+    )
+    db.session.add(sample_customer)
     db.session.flush()
 
     sample_products = [
@@ -407,15 +419,21 @@ def login():
             return jsonify({'detail': 'Invalid email or password.'}), 401
 
         # If role is specified, verify it matches
-        if role and user.role != UserRole(role):
-            return jsonify({'detail': f'Please login as a {role} to continue.'}), 403
+        if role and user.role.value != role.lower():
+            return jsonify({
+                'detail': f'Please login as a {role} to continue.',
+                'user_role': user.role.value  # Include actual role for debugging
+            }), 403
 
         # Generate token
         token = f"mock-token-{user.id}"
         
+        user_data = user_to_dict(user)
+        print(f"Login successful for {user.email} with role {user_data['role']}")  # Debug log
+        
         return jsonify({
             'message': 'Login successful',
-            'user': user_to_dict(user),
+            'user': user_data,
             'token': token
         })
         

@@ -421,10 +421,16 @@
                     </div>
                     <div class="form-group">
                         <label for="farmer-password">Password</label>
-                        <input type="password" id="farmer-password" class="form-input" placeholder="Enter your password" required>
+                        <input type="password" id="farmer-password" name="password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
                     </div>
-                    <button type="submit" class="login-btn">Login as Farmer</button>
+                    <button type="submit" class="login-btn">
+                        <span class="btn-text">Login as Farmer</span>
+                        <span class="btn-loading" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i> Signing in...
+                        </span>
+                    </button>
                 </form>
+                <div id="farmer-login-error" class="error-message" style="display: none;"></div>
             </div>
 
             <div class="additional-links">
@@ -456,20 +462,136 @@
     <script src="/static/api.js"></script>
     <script src="/static/auth.js"></script>
     <script type="module">
+        // Debug: Log current URL and localStorage state
+        console.log('Current URL:', window.location.href);
+        console.log('Current auth state:', {
+            hasToken: !!localStorage.getItem('authToken'),
+            hasUser: !!localStorage.getItem('authUser')
+        });
+
         // Check if user is already logged in
         document.addEventListener('DOMContentLoaded', function() {
-            const authUser = localStorage.getItem('authUser');
-            if (authUser) {
-                const user = JSON.parse(authUser);
-                const redirectUrl = user.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
-                window.location.href = redirectUrl;
+            try {
+                const authUser = localStorage.getItem('authUser');
+                console.log('Auth user from localStorage:', authUser);
+                
+                if (authUser) {
+                    const user = JSON.parse(authUser);
+                    console.log('Parsed user data:', user);
+                    redirectBasedOnRole(user.role);
+                }
+                
+                // Add form submission handlers
+                setupLoginForms();
+            } catch (error) {
+                console.error('Error in DOMContentLoaded:', error);
             }
         });
+
+        function redirectBasedOnRole(role) {
+            console.log('Redirecting based on role:', role);
+            // Ensure role is properly formatted (lowercase)
+            const normalizedRole = (role || '').toLowerCase();
+            const redirectUrl = normalizedRole === 'farmer' ? 'farmer-dashboard.html' : 'dashboard.html';
+            console.log('Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
+        }
+
+        function setupLoginForms() {
+            // Customer login form
+            const customerForm = document.querySelector('#customer-form form');
+            if (customerForm) {
+                customerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleLogin('customer');
+                });
+            }
+
+            // Farmer login form
+            const farmerForm = document.querySelector('#farmer-form form');
+            if (farmerForm) {
+                farmerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleLogin('farmer');
+                });
+            }
+        }
+
+        async function handleLogin(role) {
+            const emailField = role === 'farmer' ? 'farmer-email' : 'customer-email';
+            const passwordField = role === 'farmer' ? 'farmer-password' : 'customer-password';
+            const email = document.getElementById(emailField).value;
+            const password = document.getElementById(passwordField).value;
+            const loginBtn = document.querySelector(`#${role}-form .login-btn`);
+            const btnText = loginBtn.querySelector('.btn-text');
+            const btnLoading = loginBtn.querySelector('.btn-loading');
+            const errorElement = document.getElementById(role === 'farmer' ? 'farmer-login-error' : 'login-error');
+
+            // Show loading state
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline-block';
+            errorElement.style.display = 'none';
+
+            // Simulate login delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            try {
+                // Debug: Log the input values
+                console.log('Login attempt:', { role, email, password });
+                
+                // Make API call to authenticate with database
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        role
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Login response:', { status: response.status, data });
+
+                if (!response.ok) {
+                    throw new Error(data.detail || `Login failed with status ${response.status}`);
+                }
+
+                if (!data || !data.user) {
+                    throw new Error('Invalid response from server');
+                }
+                
+                // Store user data and token from server
+                localStorage.setItem('authToken', data.token || '');
+                localStorage.setItem('authUser', JSON.stringify(data.user));
+                console.log('Login successful, user data:', data.user);
+
+                // Redirect based on role from server response
+                const redirectUrl = data.user.role === 'farmer' ? 'farmer-dashboard.html' : 'dashboard.html';
+                console.log('Redirecting to:', redirectUrl);
+                window.location.replace(redirectUrl);
+                return; // Stop further execution
+
+            } catch (error) {
+                console.error('Login error:', error);
+                errorElement.textContent = error.message || 'Failed to login. Please try again.';
+                errorElement.style.display = 'block';
+                
+                // Reset button state
+                btnText.style.display = 'inline-block';
+                btnLoading.style.display = 'none';
+                
+                // Clear any potentially invalid auth data
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authUser');
+            }
+        }
     </script>
-    <!-- Add these just before the closing </body> tag -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="/static/js/api.js" type="module"></script>
-<script src="/static/js/cart.js"></script>
-<script src="/static/js/nav-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/js/api.js" type="module"></script>
+    <script src="/static/js/cart.js"></script>
+    <script src="/static/js/nav-auth.js"></script>
 </body>
 </html>
