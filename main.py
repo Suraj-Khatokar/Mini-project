@@ -18,7 +18,7 @@ app = Flask(__name__)
 # MySQL configuration with dummy credentials
 MYSQL_CONFIG = {
     'user': 'root',
-    'password': 'Kesavan%402005',
+    'password': 'user',
     'host': 'localhost',
     'port': '3306',
     'database': 'smartorganic',
