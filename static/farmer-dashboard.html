@@ -415,7 +415,7 @@
             <a href="contact.html">Contact</a>
         </div>
         <div class="user-menu">
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <button class="logout-btn" id="logout-btn" onclick="logout()">Logout</button>
         </div>
     </nav>
 
@@ -790,14 +790,6 @@
                 }
             } catch (err) {
                 console.error('Error initializing farmer dashboard:', err);
-                window.location.href = 'login.html';
-            }
-        }
-
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('authUser');
                 window.location.href = 'login.html';
             }
         }

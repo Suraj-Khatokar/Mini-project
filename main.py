@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, text
+from sqlalchemy import func, text, inspect
+
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from enum import Enum
@@ -55,11 +56,13 @@ class User(db.Model):
     last_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(255), unique=True, index=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.customer)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     farmer_profile = relationship("FarmerProfile", back_populates="user", uselist=False)
     orders = relationship("Order", back_populates="customer")
+    addresses = relationship("Address", back_populates="customer", cascade="all, delete-orphan")
 
 class FarmerProfile(db.Model):
     __tablename__ = "farmer_profiles"
@@ -150,6 +153,22 @@ class Batch(db.Model):
 
     farmer = relationship("FarmerProfile", back_populates="batches")
 
+class Address(db.Model):
+    __tablename__ = "addresses"
+    id = db.Column(db.Integer, primary_key=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type = db.Column(db.String(20), default="home")  # home, work, other
+    street_address = db.Column(db.Text, nullable=False)
+    city = db.Column(db.String(100), nullable=False)
+    state = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=False)
+    country = db.Column(db.String(100), default="India")
+    is_default = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column(db.DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    customer = relationship("User", back_populates="addresses")
+
 # Helper functions
 def hash_password(password: str) -> str:
     return generate_password_hash(password)
@@ -185,9 +204,25 @@ def user_to_dict(user):
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
+        'phone': user.phone,
         'role': user.role.value if user.role else 'customer',
         'created_at': user.created_at.isoformat() if user.created_at else None,
-        'farmer_profile': farmer_profile_to_dict(user.farmer_profile) if user.farmer_profile else None
+        'farmer_profile': farmer_profile_to_dict(user.farmer_profile) if user.farmer_profile else None,
+        'addresses': [address_to_dict(addr) for addr in user.addresses] if user.addresses else []
+    }
+
+def address_to_dict(address):
+    return {
+        'id': address.id,
+        'type': address.type,
+        'street_address': address.street_address,
+        'city': address.city,
+        'state': address.state,
+        'postal_code': address.postal_code,
+        'country': address.country,
+        'is_default': address.is_default,
+        'created_at': address.created_at.isoformat() if address.created_at else None,
+        'updated_at': address.updated_at.isoformat() if address.updated_at else None
     }
 
 def farmer_profile_to_dict(profile):
@@ -375,10 +410,26 @@ def seed_products():
 
     db.session.commit()
 
-# Initialize database
+# Initialize database and perform simple migrations
 with app.app_context():
     db.create_all()
     seed_products()
+
+    # Simple migration: ensure 'phone' column exists on users table
+    try:
+        engine = db.engine
+        inspector = inspect(engine)
+        user_columns = [col['name'] for col in inspector.get_columns('users')]
+
+        if 'phone' not in user_columns:
+            # Add nullable phone column for existing databases created before this field was added
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL"))
+                conn.commit()
+            logger.info("Added missing 'phone' column to users table")
+    except Exception as e:
+        # Log but don't crash app if migration check fails
+        logger.error(f"Error ensuring users.phone column exists: {e}")
 
 # CORS handling
 @app.after_request
@@ -466,8 +517,13 @@ def login():
         })
         
     except Exception as e:
-        logger.error(f"Login error for {data.get('email')}: {str(e)}")
-        return jsonify({'detail': 'An error occurred during login. Please try again.'}), 500
+        # Log full error server-side and return the actual message for debugging
+        try:
+            logger.error(f"Login error for {data.get('email') if data else 'unknown'}: {str(e)}")
+        except Exception:
+            logger.error(f"Login error (logging failed): {str(e)}")
+
+        return jsonify({'detail': str(e)}), 500
 
 @app.route('/api/products', methods=['GET'])
 def list_products():
@@ -576,39 +632,152 @@ def list_orders(customer_id):
     except Exception as e:
         return jsonify({'detail': str(e)}), 500
 
-@app.route('/api/farmers/<int:farmer_id>/batches', methods=['GET', 'POST'])
-@token_required
-def farmer_batches(current_user, farmer_id):
+@app.route('/api/customer/stats/<int:customer_id>', methods=['GET'])
+def get_customer_stats(customer_id):
     try:
-        farmer_profile = FarmerProfile.query.get(farmer_id)
-        if not farmer_profile:
-            return jsonify({'detail': 'Farmer profile not found.'}), 404
+        # Get customer orders
+        orders = Order.query.filter_by(customer_id=customer_id).all()
+        
+        # Calculate statistics
+        total_orders = len(orders)
+        total_spent = sum(order.total_price_inr for order in orders)
+        
+        # Get order status breakdown
+        status_counts = {}
+        for order in orders:
+            status_counts[order.status] = status_counts.get(order.status, 0) + 1
+        
+        return jsonify({
+            'total_orders': total_orders,
+            'total_spent': total_spent,
+            'status_breakdown': status_counts,
+            'recent_orders': [order_to_dict(order) for order in orders[:5]]  # Last 5 orders
+        })
+    except Exception as e:
+        return jsonify({'detail': str(e)}), 500
 
-        if farmer_profile.user_id != current_user.id:
-            return jsonify({'detail': 'Not authorized to access these batches.'}), 403
+@app.route('/api/customer/profile/<int:customer_id>', methods=['GET', 'PUT'])
+@token_required
+def get_customer_profile(current_user, customer_id):
+    try:
+        # Ensure user can only access their own profile
+        if current_user.id != customer_id:
+            return jsonify({'detail': 'Access denied'}), 403
+            
+        user = User.query.get(customer_id)
+        if not user:
+            return jsonify({'detail': 'Customer not found'}), 404
+        
+        if request.method == 'PUT':
+            # Update user profile (phone number)
+            data = request.get_json()
+            if not data:
+                return jsonify({'detail': 'No data provided for update.'}), 400
+            
+            # Update phone number if provided
+            if 'phone' in data:
+                user.phone = data['phone'].strip() if data['phone'] else None
+            
+            db.session.commit()
+            
+        return jsonify(user_to_dict(user))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
 
+@app.route('/api/customer/addresses', methods=['GET', 'POST'])
+@token_required
+def manage_addresses(current_user):
+    try:
         if request.method == 'GET':
-            batches = Batch.query.filter_by(farmer_id=farmer_profile.id).order_by(Batch.created_at.desc()).all()
-            return jsonify([batch_to_dict(b) for b in batches])
+            # Get all addresses for the current user
+            addresses = Address.query.filter_by(customer_id=current_user.id).order_by(Address.is_default.desc(), Address.created_at.desc()).all()
+            return jsonify([address_to_dict(addr) for addr in addresses])
+        
+        elif request.method == 'POST':
+            # Create new address
+            data = request.get_json()
+            if not data:
+                return jsonify({'detail': 'No data provided for address creation.'}), 400
+            
+            # Validate required fields
+            required_fields = ['street_address', 'city', 'state', 'postal_code']
+            for field in required_fields:
+                if not data.get(field) or not data[field].strip():
+                    return jsonify({'detail': f'{field} is required.'}), 400
+            
+            # If this is set as default, unset other default addresses
+            if data.get('is_default'):
+                Address.query.filter_by(customer_id=current_user.id, is_default=True).update({'is_default': False})
+            
+            # Create new address
+            address = Address(
+                customer_id=current_user.id,
+                type=data.get('type', 'home'),
+                street_address=data['street_address'].strip(),
+                city=data['city'].strip(),
+                state=data['state'].strip(),
+                postal_code=data['postal_code'].strip(),
+                country=data.get('country', 'India').strip(),
+                is_default=data.get('is_default', False)
+            )
+            
+            db.session.add(address)
+            db.session.commit()
+            
+            return jsonify(address_to_dict(address)), 201
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
 
-        data = request.get_json() or {}
-        batch = Batch(
-            farmer_id=farmer_profile.id,
-            batch_code=data.get('batch_code', '').strip() or f"BATCH-{int(datetime.utcnow().timestamp())}",
-            product_name=data.get('product_name', '').strip(),
-            harvest_date=datetime.fromisoformat(data['harvest_date']).date() if data.get('harvest_date') else None,
-            quantity=int(data.get('quantity', 0) or 0),
-            unit=data.get('unit', 'kg'),
-            status=data.get('status', 'harvested') or 'harvested',
-        )
-
-        if not batch.product_name or batch.quantity <= 0:
-            return jsonify({'detail': 'Product name and a positive quantity are required.'}), 400
-
-        db.session.add(batch)
-        db.session.commit()
-        return jsonify(batch_to_dict(batch)), 201
-
+@app.route('/api/customer/addresses/<int:address_id>', methods=['PUT', 'DELETE'])
+@token_required
+def manage_single_address(current_user, address_id):
+    try:
+        address = Address.query.get(address_id)
+        if not address:
+            return jsonify({'detail': 'Address not found.'}), 404
+        
+        # Ensure user can only manage their own addresses
+        if address.customer_id != current_user.id:
+            return jsonify({'detail': 'Access denied.'}), 403
+        
+        if request.method == 'PUT':
+            # Update address
+            data = request.get_json()
+            if not data:
+                return jsonify({'detail': 'No data provided for update.'}), 400
+            
+            # Validate required fields
+            required_fields = ['street_address', 'city', 'state', 'postal_code']
+            for field in required_fields:
+                if not data.get(field) or not data[field].strip():
+                    return jsonify({'detail': f'{field} is required.'}), 400
+            
+            # If this is set as default, unset other default addresses
+            if data.get('is_default') and not address.is_default:
+                Address.query.filter_by(customer_id=current_user.id, is_default=True).update({'is_default': False})
+            
+            # Update address fields
+            address.type = data.get('type', address.type)
+            address.street_address = data['street_address'].strip()
+            address.city = data['city'].strip()
+            address.state = data['state'].strip()
+            address.postal_code = data['postal_code'].strip()
+            address.country = data.get('country', address.country).strip()
+            address.is_default = data.get('is_default', address.is_default)
+            address.updated_at = datetime.utcnow()
+            
+            db.session.commit()
+            return jsonify(address_to_dict(address))
+        
+        elif request.method == 'DELETE':
+            # Delete address
+            db.session.delete(address)
+            db.session.commit()
+            return jsonify({'message': 'Address deleted successfully.'})
+            
     except Exception as e:
         db.session.rollback()
         return jsonify({'detail': str(e)}), 500
@@ -641,8 +810,66 @@ def farmer_profile(current_user):
         if 'primary_products' in data and data['primary_products'].strip():
             farmer_profile.primary_products = data['primary_products'].strip()
         
-        db.session.commit()
         return jsonify(farmer_profile_to_dict(farmer_profile))
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
+
+@app.route('/api/farmers/<int:farmer_id>/batches', methods=['GET', 'POST'])
+@token_required
+def manage_batches(current_user, farmer_id):
+    try:
+        # Verify the farmer profile belongs to the current user
+        farmer_profile = FarmerProfile.query.filter_by(id=farmer_id, user_id=current_user.id).first()
+        if not farmer_profile:
+            return jsonify({'detail': 'Farmer profile not found or access denied.'}), 404
+        
+        if request.method == 'GET':
+            # Get all batches for this farmer
+            batches = Batch.query.filter_by(farmer_id=farmer_id).order_by(Batch.created_at.desc()).all()
+            return jsonify([batch_to_dict(batch) for batch in batches])
+        
+        elif request.method == 'POST':
+            # Create new batch
+            data = request.get_json()
+            if not data:
+                return jsonify({'detail': 'No data provided.'}), 400
+            
+            # Validate required fields
+            if not data.get('product_name') or not data['product_name'].strip():
+                return jsonify({'detail': 'Product name is required.'}), 400
+            
+            if not data.get('quantity') or data['quantity'] <= 0:
+                return jsonify({'detail': 'Quantity must be greater than 0.'}), 400
+            
+            # Generate unique batch code
+            import uuid
+            batch_code = f"BATCH-{str(uuid.uuid4())[:8].upper()}"
+            
+            # Parse harvest date if provided
+            harvest_date = None
+            if data.get('harvest_date'):
+                try:
+                    harvest_date = datetime.strptime(data['harvest_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    return jsonify({'detail': 'Invalid harvest date format. Use YYYY-MM-DD.'}), 400
+            
+            # Create new batch
+            batch = Batch(
+                farmer_id=farmer_id,
+                batch_code=batch_code,
+                product_name=data['product_name'].strip(),
+                harvest_date=harvest_date,
+                quantity=int(data['quantity']),
+                unit=data.get('unit', 'kg'),
+                status=data.get('status', 'harvested')
+            )
+            
+            db.session.add(batch)
+            db.session.commit()
+            
+            return jsonify(batch_to_dict(batch)), 201
         
     except Exception as e:
         db.session.rollback()
@@ -651,9 +878,6 @@ def farmer_profile(current_user):
 @app.route('/health', methods=['GET'])
 def healthcheck():
     return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
-
-# ========== FIXED STATIC FILE SERVING ==========
-# Specific routes for main pages
 @app.route('/login')
 def serve_login():
     static_dir = Path(__file__).parent / 'static'

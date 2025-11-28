@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Cart - Smart Organic Connect</title>
+    <title>Checkout - Smart Organic Connect</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Nunito:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -77,13 +77,13 @@
             font-weight: 600;
         }
 
-        .cart-wrapper {
+        .checkout-wrapper {
             max-width: 1100px;
             margin: 6rem auto 2rem;
             padding: 0 5%;
         }
 
-        .cart-grid {
+        .checkout-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 2rem;
@@ -159,7 +159,7 @@
         .empty-state { text-align: center; color: var(--text-secondary); padding: 2rem 0; }
 
         @media (max-width: 768px) {
-            .cart-grid { grid-template-columns: 1fr; }
+            .checkout-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -175,17 +175,17 @@
         </div>
     </nav>
 
-    <div class="cart-wrapper">
-        <h1>Your Cart</h1>
-        <div class="cart-grid">
+    <div class="checkout-wrapper">
+        <h1>Checkout</h1>
+        <div class="checkout-grid">
             <div class="card">
-                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Items</h2>
-                <div id="cartItems" class="cart-items"></div>
+                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Order Items</h2>
+                <div id="checkoutItems" class="cart-items"></div>
             </div>
             <div class="card">
-                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Summary</h2>
-                <div id="cartSummary"></div>
-                <button class="btn btn-primary" onclick="window.location.href='checkout.html'">Proceed to Checkout</button>
+                <h2 style="margin-bottom: 1rem; font-size: 1.2rem;">Order Summary</h2>
+                <div id="orderSummary"></div>
+                <button class="btn btn-primary" id="placeOrderBtn">Place Order</button>
                 <button class="btn btn-secondary" onclick="window.location.href='marketplace.html'">Continue Shopping</button>
             </div>
         </div>
@@ -197,13 +197,13 @@
             return '₹' + amount.toFixed(2);
         }
 
-        function renderCart() {
+        function renderCheckout() {
             const items = window.cartManager ? window.cartManager.getCart() : [];
-            const itemsContainer = document.getElementById('cartItems');
-            const summaryContainer = document.getElementById('cartSummary');
+            const itemsContainer = document.getElementById('checkoutItems');
+            const summaryContainer = document.getElementById('orderSummary');
 
             if (!items || items.length === 0) {
-                itemsContainer.innerHTML = '<div class="empty-state">Your cart is empty.</div>';
+                itemsContainer.innerHTML = '<div class="empty-state">Your cart is empty. Add some products first.</div>';
                 summaryContainer.innerHTML = '<div class="summary-row"><span>Total</span><span class="summary-total">₹0.00</span></div>';
                 return;
             }
@@ -246,7 +246,7 @@
                     const item = items[idx];
                     if (item && window.cartManager) {
                         window.cartManager.updateQuantity(item.id, newQty);
-                        renderCart();
+                        renderCheckout();
                     }
                 });
             });
@@ -257,13 +257,77 @@
                     const item = items[idx];
                     if (item && window.cartManager) {
                         window.cartManager.removeFromCart(item.id);
-                        renderCart();
+                        renderCheckout();
                     }
                 });
             });
         }
 
-        document.addEventListener('DOMContentLoaded', renderCart);
+        async function placeOrderFromCheckout() {
+            const authUser = JSON.parse(localStorage.getItem('authUser') || 'null');
+            const authToken = localStorage.getItem('authToken');
+
+            if (!authUser || !authToken || authUser.role !== 'customer') {
+                alert('Please log in as a customer to place an order.');
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const items = window.cartManager ? window.cartManager.getCart() : [];
+            if (!items || items.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+
+            const orderItems = items
+                .map(item => ({
+                    product_id: parseInt(item.id, 10) || 0,
+                    quantity: item.quantity || 1
+                }))
+                .filter(i => i.product_id);
+
+            if (orderItems.length === 0) {
+                alert('Could not determine products for this order.');
+                return;
+            }
+
+            const payload = {
+                customer_id: authUser.id,
+                items: orderItems
+            };
+
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    alert(err.detail || 'Failed to place order.');
+                    return;
+                }
+
+                if (window.cartManager) {
+                    window.cartManager.clearCart();
+                }
+
+                localStorage.setItem('orderSuccess', 'true');
+                window.location.href = 'dashboard.html';
+            } catch (e) {
+                console.error('Error placing order from checkout:', e);
+                alert('An error occurred while placing your order.');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCheckout();
+            const btn = document.getElementById('placeOrderBtn');
+            btn.addEventListener('click', placeOrderFromCheckout);
+        });
     </script>
 </body>
 </html>

@@ -456,17 +456,16 @@
     <!-- Add Font Awesome for loading spinner -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
-    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/js/api.js" type="module"></script>
     <script src="/static/js/cart.js"></script>
     <script src="/static/js/nav-auth.js"></script>
-    <script src="/static/js/api.js"></script>
-    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Check if already logged in
         const authUser = JSON.parse(localStorage.getItem('authUser') || 'null');
         if (authUser) {
-            const redirectUrl = authUser.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
+            const redirectUrl = authUser.role === 'farmer' ? 'farmer-dashboard.html' : 'dashboard.html';
             window.location.href = redirectUrl;
             return;
         }
@@ -528,7 +527,7 @@
             localStorage.setItem('authUser', JSON.stringify(data.user));
             
             // Redirect based on role
-            const redirectUrl = data.user.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
+            const redirectUrl = data.user.role === 'farmer' ? 'farmer-dashboard.html' : 'dashboard.html';
             window.location.href = redirectUrl;
             
         } catch (error) {
