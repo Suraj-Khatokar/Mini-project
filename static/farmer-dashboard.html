@@ -687,6 +687,13 @@
     </section>
 
     <script>
+        // Simple logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
+            window.location.href = 'login.html';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Wait a bit for nav-auth.js to handle redirects first
             setTimeout(initFarmerDashboard, 100);
@@ -734,11 +741,15 @@
                 const editFarmLocation = document.getElementById('edit-farm-location');
                 const editFarmProducts = document.getElementById('edit-farm-products');
 
-                if (updateProfileBtn && profileForm && profile) {
+                console.log('Setting up Update Profile button:', updateProfileBtn);
+                console.log('Profile available:', !!profile);
+
+                if (updateProfileBtn && profileForm) {
                     updateProfileBtn.addEventListener('click', () => {
-                        if (editFarmName) editFarmName.value = profile.farm_name || '';
-                        if (editFarmLocation) editFarmLocation.value = profile.farm_location || '';
-                        if (editFarmProducts) editFarmProducts.value = profile.primary_products || '';
+                        console.log('Update Profile button clicked');
+                        if (editFarmName) editFarmName.value = profile ? profile.farm_name || '' : '';
+                        if (editFarmLocation) editFarmLocation.value = profile ? profile.farm_location || '' : '';
+                        if (editFarmProducts) editFarmProducts.value = profile ? profile.primary_products || '' : '';
                         profileForm.style.display = 'block';
                     });
                 }
@@ -761,8 +772,12 @@
                 const form = document.getElementById('batch-form');
                 const cancelBtn = document.getElementById('cancel-batch-btn');
 
+                console.log('Setting up Add Batch button:', addBtn);
+                console.log('Batch form available:', !!form);
+
                 if (addBtn && form) {
                     addBtn.addEventListener('click', () => {
+                        console.log('Add Batch button clicked');
                         form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
                     });
                 }
@@ -1163,7 +1178,8 @@
                 ticketsContainer.appendChild(ticketEl);
             });
         }
-    </script>
 
-</body>
-</html>
+        </script>
+
+    </body>
+    </html>
