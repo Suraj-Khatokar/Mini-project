@@ -404,7 +404,7 @@
         }
     </style>
 </head>
-<body>
+<body data-auth-required>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="logo">Smart Organic Connect</div>
@@ -423,8 +423,8 @@
     <section class="dashboard">
         <div class="container">
             <div class="dashboard-header">
-                <h1 class="welcome-message">Welcome, Farmer Rajesh! 🌾</h1>
-                <p style="color: var(--text-secondary);">Last login: Today, 09:45 AM</p>
+                <h1 class="welcome-message">Welcome, <span id="farmer-welcome-name">Farmer</span>! 🌾</h1>
+                <p id="farmer-last-login" style="color: var(--text-secondary);">Last login: Today</p>
             </div>
 
             <div class="dashboard-grid">
@@ -432,19 +432,40 @@
                 <div class="sidebar">
                     <div class="farmer-profile">
                         <div class="profile-avatar">🌱</div>
-                        <h3 class="farmer-name">Rajesh Kumar</h3>
-                        <p class="farmer-id">Farmer ID: FARM2024001</p>
-                        <div class="certification-badge">Organic Certified</div>
+                        <h3 class="farmer-name" id="farmer-name">Farmer Name</h3>
+                        <p class="farmer-id" id="farmer-id">Farmer ID: -</p>
+                        <div class="certification-badge" id="farmer-cert-badge">Organic Certified</div>
                     </div>
 
                     <div style="margin-bottom: 2rem;">
                         <h4 style="color: var(--accent-primary); margin-bottom: 1rem;">Farm Details</h4>
-                        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">📍 Bangalore, Karnataka</p>
-                        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">🏠 Green Valley Organic Farm</p>
-                        <p style="color: var(--text-secondary);">📞 +91 98765 43210</p>
+                        <p id="farm-location" style="color: var(--text-secondary); margin-bottom: 0.5rem;">📍 -</p>
+                        <p id="farm-name" style="color: var(--text-secondary); margin-bottom: 0.5rem;">🏠 -</p>
+                        <p id="farm-products" style="color: var(--text-secondary);">🌾 -</p>
                     </div>
 
-                    <button style="width: 100%; padding: 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                    <!-- Inline Update Profile Form (hidden by default) -->
+                    <form id="profile-form" style="display:none; margin-bottom:1rem; padding:0.8rem; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3);">
+                        <div style="margin-bottom:0.5rem;">
+                            <label style="display:block; margin-bottom:0.2rem; font-size:0.85rem; color:var(--text-secondary);">Farm Name</label>
+                            <input type="text" id="edit-farm-name" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                        </div>
+                        <div style="margin-bottom:0.5rem;">
+                            <label style="display:block; margin-bottom:0.2rem; font-size:0.85rem; color:var(--text-secondary);">Farm Location</label>
+                            <input type="text" id="edit-farm-location" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                        </div>
+                        <div style="margin-bottom:0.5rem;">
+                            <label style="display:block; margin-bottom:0.2rem; font-size:0.85rem; color:var(--text-secondary);">Primary Products</label>
+                            <input type="text" id="edit-farm-products" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                        </div>
+                        <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.4rem;">
+                            <button type="button" id="cancel-profile-btn" style="padding:0.5rem 0.9rem; background:transparent; border:1px solid var(--card-border); color:var(--text-secondary); border-radius:8px; cursor:pointer; font-size:0.85rem;">Cancel</button>
+                            <button type="submit" style="padding:0.5rem 1.1rem; background:var(--accent-primary); color:var(--bg-primary); border:none; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600;">Save</button>
+                        </div>
+                        <p id="profile-form-error" style="margin-top:0.4rem; color:var(--danger); font-size:0.8rem; display:none;"></p>
+                    </form>
+
+                    <button id="update-profile-btn" style="width: 100%; padding: 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">
                         Update Profile
                     </button>
                 </div>
@@ -499,25 +520,22 @@
                                 </div>
                             </div>
 
-                         
-
-                           
-
-                        <!-- Warehouse Conditions -->
-                        <div style="margin-top: 2rem;">
-                            <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🏬 Warehouse Conditions</h3>
-                            <div class="sensor-grid">
-                                <div class="sensor-card">
-                                    <div class="sensor-icon">❄️</div>
-                                    <div class="sensor-value">18°C</div>
-                                    <div>Storage Temp</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Updated: 5 mins ago</div>
-                                </div>
-                                <div class="sensor-card">
-                                    <div class="sensor-icon">💧</div>
-                                    <div class="sensor-value">45%</div>
-                                    <div>Storage Humidity</div>
-                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Updated: 5 mins ago</div>
+                            <!-- Warehouse Conditions -->
+                            <div style="margin-top: 2rem;">
+                                <h3 style="color: var(--accent-primary); margin-bottom: 1rem;">🏬 Warehouse Conditions</h3>
+                                <div class="sensor-grid">
+                                    <div class="sensor-card">
+                                        <div class="sensor-icon">❄️</div>
+                                        <div class="sensor-value">18°C</div>
+                                        <div>Storage Temp</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Updated: 5 mins ago</div>
+                                    </div>
+                                    <div class="sensor-card">
+                                        <div class="sensor-icon">💧</div>
+                                        <div class="sensor-value">45%</div>
+                                        <div>Storage Humidity</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Updated: 5 mins ago</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -527,44 +545,47 @@
                     <div class="card">
                         <div class="card-header">
                             <h2 class="card-title">📦 Product Batches</h2>
-                            <button style="padding: 0.5rem 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            <button id="add-batch-btn" style="padding: 0.5rem 1rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
                                 Add New Batch
                             </button>
                         </div>
-                        
-                        <div class="batch-grid">
-                            <div class="batch-card">
-                                <div class="batch-header">
-                                    <span class="batch-id">BATCH-WHT001</span>
-                                    <span class="batch-status status-packed">Packed</span>
-                                </div>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Organic Wheat Grains</p>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Harvest: 15 Dec 2024</p>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Quantity: 500 kg</p>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                    <button style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                                        View Docs
-                                    </button>
-                                    <button style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--success); color: var(--success); border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                                        Quality Report
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div class="batch-card">
-                                <div class="batch-header">
-                                    <span class="batch-id">BATCH-TMT002</span>
-                                    <span class="batch-status status-harvested">Harvested</span>
+                        <!-- Add Batch Form (initially hidden) -->
+                        <form id="batch-form" style="display:none; margin-bottom: 1.5rem; padding: 1rem; border-radius: 10px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.3);">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display:block; margin-bottom:0.3rem; font-size:0.85rem; color: var(--text-secondary);">Product Name</label>
+                                    <input type="text" id="batch-product-name" required class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
                                 </div>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Fresh Tomatoes</p>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Harvest: 18 Dec 2024</p>
-                                <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">Quantity: 200 kg</p>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                                    <button style="padding: 0.5rem 1rem; background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                                        View Docs
-                                    </button>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.3rem; font-size:0.85rem; color: var(--text-secondary);">Harvest Date</label>
+                                    <input type="date" id="batch-harvest-date" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.3rem; font-size:0.85rem; color: var(--text-secondary);">Quantity</label>
+                                    <input type="number" id="batch-quantity" min="1" required class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.3rem; font-size:0.85rem; color: var(--text-secondary);">Unit</label>
+                                    <input type="text" id="batch-unit" value="kg" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                                </div>
+                                <div>
+                                    <label style="display:block; margin-bottom:0.3rem; font-size:0.85rem; color: var(--text-secondary);">Status</label>
+                                    <select id="batch-status" class="form-input" style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                                        <option value="harvested">Harvested</option>
+                                        <option value="packed">Packed</option>
+                                    </select>
                                 </div>
                             </div>
+                            <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                                <button type="button" id="cancel-batch-btn" style="padding:0.6rem 1rem; background:transparent; border:1px solid var(--card-border); color:var(--text-secondary); border-radius:8px; cursor:pointer; font-size:0.9rem;">Cancel</button>
+                                <button type="submit" style="padding:0.6rem 1.2rem; background:var(--accent-primary); border:none; color:var(--bg-primary); border-radius:8px; cursor:pointer; font-weight:600; font-size:0.9rem;">Save Batch</button>
+                            </div>
+                            <p id="batch-form-error" style="margin-top:0.5rem; color:var(--danger); display:none; font-size:0.85rem;"></p>
+                        </form>
+
+                        <div class="batch-grid" id="batch-list">
+                            <!-- Batches will be loaded here dynamically -->
                         </div>
                     </div>
 
@@ -630,23 +651,154 @@
                     <div class="card">
                         <h2 class="card-title">🛟 Help & Support</h2>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <button style="padding: 1rem; background: rgba(0, 255, 198, 0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary); border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <button id="raise-ticket-btn" style="padding: 1rem; background: rgba(0, 255, 198, 0.1); border: 1px solid var(--accent-primary); color: var(--accent-primary); border-radius: 10px; cursor: pointer; font-weight: 600;">
                                 Raise Ticket
                             </button>
-                            <button style="padding: 1rem; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <button id="track-support-btn" style="padding: 1rem; background: rgba(255, 255, 255, 0.1); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 10px; cursor: pointer; font-weight: 600;">
                                 Track Support
                             </button>
                         </div>
+
+                        <!-- Raise Ticket form (hidden by default) -->
+                        <form id="support-form" style="display:none; margin-bottom:1rem; padding:0.8rem; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3);">
+                            <div style="margin-bottom:0.5rem;">
+                                <label style="display:block; margin-bottom:0.2rem; font-size:0.85rem; color:var(--text-secondary);">Subject</label>
+                                <input type="text" id="support-subject" class="form-input" placeholder="Issue with orders, payments, etc." style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary);">
+                            </div>
+                            <div style="margin-bottom:0.5rem;">
+                                <label style="display:block; margin-bottom:0.2rem; font-size:0.85rem; color:var(--text-secondary);">Message</label>
+                                <textarea id="support-message" rows="3" class="form-input" placeholder="Describe your issue..." style="width:100%; padding:0.6rem; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:var(--text-primary); resize:vertical;"></textarea>
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.4rem;">
+                                <button type="button" id="cancel-support-btn" style="padding:0.5rem 0.9rem; background:transparent; border:1px solid var(--card-border); color:var(--text-secondary); border-radius:8px; cursor:pointer; font-size:0.85rem;">Cancel</button>
+                                <button type="submit" style="padding:0.5rem 1.1rem; background:var(--accent-primary); color:var(--bg-primary); border:none; border-radius:8px; cursor:pointer; font-size:0.85rem; font-weight:600;">Submit Ticket</button>
+                            </div>
+                            <p id="support-form-error" style="margin-top:0.4rem; color:var(--danger); font-size:0.8rem; display:none;"></p>
+                            <p id="support-form-success" style="margin-top:0.4rem; color:var(--success); font-size:0.8rem; display:none;"></p>
+                        </form>
+
+                        <!-- Simple ticket list rendered from localStorage -->
+                        <div id="support-tickets" style="max-height:200px; overflow:auto;"></div>
                     </div>
+
                 </div>
             </div>
         </div>
     </section>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait a bit for nav-auth.js to handle redirects first
+            setTimeout(initFarmerDashboard, 100);
+        });
+
+        function initFarmerDashboard() {
+            try {
+                const authUserRaw = localStorage.getItem('authUser');
+                if (!authUserRaw) {
+                    // Don't redirect here - let nav-auth.js handle it
+                    console.log('No auth user found');
+                    return;
+                }
+
+                const authUser = JSON.parse(authUserRaw);
+                if (!authUser || authUser.role !== 'farmer') {
+                    // Don't redirect here - let nav-auth.js handle it
+                    console.log('User is not a farmer or invalid auth');
+                    return;
+                }
+
+                const profile = authUser.farmer_profile || null;
+
+                // Populate header and profile
+                const fullName = `${authUser.first_name || ''} ${authUser.last_name || ''}`.trim() || 'Farmer';
+                const welcomeNameEl = document.getElementById('farmer-welcome-name');
+                const farmerNameEl = document.getElementById('farmer-name');
+                const farmerIdEl = document.getElementById('farmer-id');
+                const farmLocationEl = document.getElementById('farm-location');
+                const farmNameEl = document.getElementById('farm-name');
+                const farmProductsEl = document.getElementById('farm-products');
+
+                if (welcomeNameEl) welcomeNameEl.textContent = fullName;
+                if (farmerNameEl) farmerNameEl.textContent = fullName;
+                if (farmerIdEl && profile && profile.id) farmerIdEl.textContent = `Farmer ID: FARM-${profile.id}`;
+                if (farmLocationEl && profile) farmLocationEl.textContent = `📍 ${profile.farm_location}`;
+                if (farmNameEl && profile) farmNameEl.textContent = `🏠 ${profile.farm_name}`;
+                if (farmProductsEl && profile) farmProductsEl.textContent = `🌾 ${profile.primary_products}`;
+
+                // Wire up Update Profile
+                const updateProfileBtn = document.getElementById('update-profile-btn');
+                const profileForm = document.getElementById('profile-form');
+                const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+                const editFarmName = document.getElementById('edit-farm-name');
+                const editFarmLocation = document.getElementById('edit-farm-location');
+                const editFarmProducts = document.getElementById('edit-farm-products');
+
+                if (updateProfileBtn && profileForm && profile) {
+                    updateProfileBtn.addEventListener('click', () => {
+                        if (editFarmName) editFarmName.value = profile.farm_name || '';
+                        if (editFarmLocation) editFarmLocation.value = profile.farm_location || '';
+                        if (editFarmProducts) editFarmProducts.value = profile.primary_products || '';
+                        profileForm.style.display = 'block';
+                    });
+                }
+                if (cancelProfileBtn && profileForm) {
+                    cancelProfileBtn.addEventListener('click', () => {
+                        profileForm.style.display = 'none';
+                        const errEl = document.getElementById('profile-form-error');
+                        if (errEl) errEl.style.display = 'none';
+                    });
+                }
+                if (profileForm) {
+                    profileForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        saveProfileChanges(authUser, profile);
+                    });
+                }
+
+                // Wire up Add Batch form
+                const addBtn = document.getElementById('add-batch-btn');
+                const form = document.getElementById('batch-form');
+                const cancelBtn = document.getElementById('cancel-batch-btn');
+
+                if (addBtn && form) {
+                    addBtn.addEventListener('click', () => {
+                        form.style.display = form.style.display === 'none' || !form.style.display ? 'block' : 'none';
+                    });
+                }
+                if (cancelBtn && form) {
+                    cancelBtn.addEventListener('click', () => {
+                        form.reset();
+                        form.style.display = 'none';
+                        const errEl = document.getElementById('batch-form-error');
+                        if (errEl) errEl.style.display = 'none';
+                    });
+                }
+                if (form && profile && profile.id) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        submitBatchForm(profile.id);
+                    });
+                }
+
+                // Wire up support section
+                setupSupportSection(authUser);
+
+                // Load existing batches
+                if (profile && profile.id) {
+                    loadBatches(profile.id);
+                }
+            } catch (err) {
+                console.error('Error initializing farmer dashboard:', err);
+                window.location.href = 'login.html';
+            }
+        }
+
         function logout() {
-            if(confirm('Are you sure you want to logout?')) {
-                window.location.href = 'index.html';
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authUser');
+                window.location.href = 'login.html';
             }
         }
 
@@ -681,7 +833,6 @@
         setInterval(() => {
             const alerts = document.querySelectorAll('.alert-item');
             if(alerts.length > 0 && Math.random() > 0.7) {
-                // Add random alert
                 const alertTypes = [
                     {icon: '🌡️', title: 'Temperature Warning', message: 'Field B temperature above 35°C'},
                     {icon: '💧', title: 'Irrigation Required', message: 'Field C moisture critical'},
@@ -692,6 +843,335 @@
                 // Implementation for adding new alerts can be added here
             }
         }, 60000);
+
+        async function loadBatches(farmerProfileId) {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('No auth token found when loading batches');
+                    return;
+                }
+
+                const resp = await fetch(`/api/farmers/${farmerProfileId}/batches`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    console.error('Failed to load batches:', data);
+                    return;
+                }
+
+                const listEl = document.getElementById('batch-list');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    listEl.innerHTML = '<p style="color: var(--text-secondary);">No batches added yet. Use "Add New Batch" to create one.</p>';
+                    return;
+                }
+
+                data.forEach(batch => {
+                    const statusClass = batch.status === 'packed' ? 'status-packed' : 'status-harvested';
+                    const harvestText = batch.harvest_date ? `Harvest: ${new Date(batch.harvest_date).toLocaleDateString()}` : 'Harvest: -';
+                    const qtyText = `Quantity: ${batch.quantity} ${batch.unit || ''}`;
+
+                    const card = document.createElement('div');
+                    card.className = 'batch-card';
+                    card.innerHTML = `
+                        <div class="batch-header">
+                            <span class="batch-id">${batch.batch_code}</span>
+                            <span class="batch-status ${statusClass}">${batch.status.charAt(0).toUpperCase() + batch.status.slice(1)}</span>
+                        </div>
+                        <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${batch.product_name}</p>
+                        <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${harvestText}</p>
+                        <p style="margin-bottom: 0.5rem; color: var(--text-secondary);">${qtyText}</p>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (err) {
+                console.error('Error loading batches:', err);
+            }
+        }
+
+        async function submitBatchForm(farmerProfileId) {
+            const productNameEl = document.getElementById('batch-product-name');
+            const harvestDateEl = document.getElementById('batch-harvest-date');
+            const quantityEl = document.getElementById('batch-quantity');
+            const unitEl = document.getElementById('batch-unit');
+            const statusEl = document.getElementById('batch-status');
+            const errEl = document.getElementById('batch-form-error');
+
+            if (!productNameEl || !quantityEl) return;
+
+            const product_name = productNameEl.value.trim();
+            const quantity = parseInt(quantityEl.value, 10) || 0;
+            const unit = unitEl ? unitEl.value.trim() : 'kg';
+            const status = statusEl ? statusEl.value : 'harvested';
+            const harvest_date = harvestDateEl && harvestDateEl.value ? harvestDateEl.value : null;
+
+            if (!product_name || quantity <= 0) {
+                if (errEl) {
+                    errEl.textContent = 'Please enter a product name and a positive quantity.';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('No auth token found when submitting batch');
+                    return;
+                }
+
+                const resp = await fetch(`/api/farmers/${farmerProfileId}/batches`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product_name,
+                        harvest_date,
+                        quantity,
+                        unit,
+                        status
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    if (errEl) {
+                        errEl.textContent = data.detail || 'Failed to save batch. Please try again.';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                // Reset form and hide it
+                const form = document.getElementById('batch-form');
+                if (form) {
+                    form.reset();
+                    form.style.display = 'none';
+                }
+                if (errEl) errEl.style.display = 'none';
+
+                // Reload batches
+                await loadBatches(farmerProfileId);
+            } catch (err) {
+                console.error('Error submitting batch form:', err);
+                if (errEl) {
+                    errEl.textContent = 'An unexpected error occurred. Please try again.';
+                    errEl.style.display = 'block';
+                }
+            }
+        }
+
+        async function saveProfileChanges(authUser, profile) {
+            const farmNameEl = document.getElementById('edit-farm-name');
+            const farmLocationEl = document.getElementById('edit-farm-location');
+            const farmProductsEl = document.getElementById('edit-farm-products');
+            const errEl = document.getElementById('profile-form-error');
+
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    console.warn('No auth token found when updating profile');
+                    return;
+                }
+
+                const resp = await fetch('/api/farmer/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        farm_name: farmNameEl ? farmNameEl.value.trim() : '',
+                        farm_location: farmLocationEl ? farmLocationEl.value.trim() : '',
+                        primary_products: farmProductsEl ? farmProductsEl.value.trim() : ''
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    if (errEl) {
+                        errEl.textContent = data.detail || 'Failed to update profile. Please try again.';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                // Update localStorage with new profile data
+                const updatedUser = { ...authUser, farmer_profile: data };
+                localStorage.setItem('authUser', JSON.stringify(updatedUser));
+
+                // Hide form and update UI
+                const form = document.getElementById('profile-form');
+                if (form) form.style.display = 'none';
+                if (errEl) errEl.style.display = 'none';
+
+                // Update displayed profile info
+                if (farmLocationEl) document.getElementById('farm-location').textContent = `📍 ${data.farm_location}`;
+                if (farmNameEl) document.getElementById('farm-name').textContent = `🏠 ${data.farm_name}`;
+                if (farmProductsEl) document.getElementById('farm-products').textContent = `🌾 ${data.primary_products}`;
+
+                alert('Profile updated successfully!');
+            } catch (err) {
+                console.error('Error updating profile:', err);
+                if (errEl) {
+                    errEl.textContent = 'An unexpected error occurred. Please try again.';
+                    errEl.style.display = 'block';
+                }
+            }
+        }
+
+        function setupSupportSection(authUser) {
+            const raiseBtn = document.getElementById('raise-ticket-btn');
+            const trackBtn = document.getElementById('track-support-btn');
+            const supportForm = document.getElementById('support-form');
+            const cancelBtn = document.getElementById('cancel-support-btn');
+
+            if (raiseBtn && supportForm) {
+                raiseBtn.addEventListener('click', () => {
+                    supportForm.style.display = supportForm.style.display === 'none' || !supportForm.style.display ? 'block' : 'none';
+                });
+            }
+
+            if (cancelBtn && supportForm) {
+                cancelBtn.addEventListener('click', () => {
+                    supportForm.reset();
+                    supportForm.style.display = 'none';
+                    const errEl = document.getElementById('support-form-error');
+                    const successEl = document.getElementById('support-form-success');
+                    if (errEl) errEl.style.display = 'none';
+                    if (successEl) successEl.style.display = 'none';
+                });
+            }
+
+            if (supportForm) {
+                supportForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    submitSupportTicket(authUser);
+                });
+            }
+
+            if (trackBtn) {
+                trackBtn.addEventListener('click', () => {
+                    displaySupportTickets();
+                });
+            }
+
+            // Load tickets on page load
+            displaySupportTickets();
+        }
+
+        async function submitSupportTicket(authUser) {
+            const subjectEl = document.getElementById('support-subject');
+            const messageEl = document.getElementById('support-message');
+            const errEl = document.getElementById('support-form-error');
+            const successEl = document.getElementById('support-form-success');
+
+            if (!subjectEl || !messageEl) return;
+
+            const subject = subjectEl.value.trim();
+            const message = messageEl.value.trim();
+
+            if (!subject || !message) {
+                if (errEl) {
+                    errEl.textContent = 'Please fill in both subject and message.';
+                    errEl.style.display = 'block';
+                }
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: `${authUser.first_name} ${authUser.last_name}`,
+                        email: authUser.email,
+                        subject: subject,
+                        message: message
+                    })
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    if (errEl) {
+                        errEl.textContent = data.detail || 'Failed to submit ticket. Please try again.';
+                        errEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                // Save to localStorage for tracking
+                const tickets = JSON.parse(localStorage.getItem('supportTickets') || '[]');
+                tickets.unshift({
+                    id: data.id,
+                    subject: subject,
+                    message: message,
+                    status: 'Open',
+                    created_at: new Date().toISOString()
+                });
+                localStorage.setItem('supportTickets', JSON.stringify(tickets));
+
+                // Reset form and show success
+                const form = document.getElementById('support-form');
+                if (form) form.reset();
+                if (form) form.style.display = 'none';
+                if (errEl) errEl.style.display = 'none';
+                if (successEl) {
+                    successEl.textContent = 'Ticket submitted successfully!';
+                    successEl.style.display = 'block';
+                    setTimeout(() => successEl.style.display = 'none', 3000);
+                }
+
+                // Refresh ticket list
+                displaySupportTickets();
+            } catch (err) {
+                console.error('Error submitting support ticket:', err);
+                if (errEl) {
+                    errEl.textContent = 'An unexpected error occurred. Please try again.';
+                    errEl.style.display = 'block';
+                }
+            }
+        }
+
+        function displaySupportTickets() {
+            const ticketsContainer = document.getElementById('support-tickets');
+            if (!ticketsContainer) return;
+
+            const tickets = JSON.parse(localStorage.getItem('supportTickets') || '[]');
+            
+            if (tickets.length === 0) {
+                ticketsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.9rem;">No support tickets yet.</p>';
+                return;
+            }
+
+            ticketsContainer.innerHTML = '<h4 style="color: var(--accent-primary); margin-bottom: 0.5rem;">Your Support Tickets</h4>';
+            tickets.forEach(ticket => {
+                const ticketEl = document.createElement('div');
+                ticketEl.style.cssText = 'background: rgba(255,255,255,0.05); padding: 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; border: 1px solid var(--card-border);';
+                ticketEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem;">
+                        <strong style="color: var(--text-primary); font-size: 0.9rem;">${ticket.subject}</strong>
+                        <span style="color: ${ticket.status === 'Open' ? 'var(--warning)' : 'var(--success)'}; font-size: 0.8rem; font-weight: 600;">${ticket.status}</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">${ticket.message.substring(0, 100)}${ticket.message.length > 100 ? '...' : ''}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin: 0.3rem 0 0;">Created: ${new Date(ticket.created_at).toLocaleString()}</p>
+                `;
+                ticketsContainer.appendChild(ticketEl);
+            });
+        }
     </script>
+
 </body>
 </html>

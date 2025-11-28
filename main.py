@@ -72,6 +72,7 @@ class FarmerProfile(db.Model):
 
     user = relationship("User", back_populates="farmer_profile")
     products = relationship("Product", back_populates="farmer")
+    batches = relationship("Batch", back_populates="farmer")
 
 class Product(db.Model):
     __tablename__ = "products"
@@ -134,6 +135,20 @@ class OrderItem(db.Model):
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
+
+class Batch(db.Model):
+    __tablename__ = "batches"
+    id = db.Column(db.Integer, primary_key=True)
+    farmer_id = db.Column(db.Integer, db.ForeignKey("farmer_profiles.id", ondelete="CASCADE"))
+    batch_code = db.Column(db.String(50), nullable=False)
+    product_name = db.Column(db.String(255), nullable=False)
+    harvest_date = db.Column(db.Date, nullable=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit = db.Column(db.String(50), default="kg")
+    status = db.Column(db.String(50), default="harvested")
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
+    farmer = relationship("FarmerProfile", back_populates="batches")
 
 # Helper functions
 def hash_password(password: str) -> str:
@@ -238,6 +253,19 @@ def order_item_to_dict(item):
         'product_id': item.product_id,
         'quantity': item.quantity,
         'unit_price_inr': item.unit_price_inr
+    }
+
+def batch_to_dict(batch):
+    return {
+        'id': batch.id,
+        'farmer_id': batch.farmer_id,
+        'batch_code': batch.batch_code,
+        'product_name': batch.product_name,
+        'harvest_date': batch.harvest_date.isoformat() if batch.harvest_date else None,
+        'quantity': batch.quantity,
+        'unit': batch.unit,
+        'status': batch.status,
+        'created_at': batch.created_at.isoformat() if batch.created_at else None,
     }
 
 # Seed data
@@ -546,6 +574,78 @@ def list_orders(customer_id):
         orders = Order.query.filter_by(customer_id=customer_id).order_by(Order.created_at.desc()).all()
         return jsonify([order_to_dict(order) for order in orders])
     except Exception as e:
+        return jsonify({'detail': str(e)}), 500
+
+@app.route('/api/farmers/<int:farmer_id>/batches', methods=['GET', 'POST'])
+@token_required
+def farmer_batches(current_user, farmer_id):
+    try:
+        farmer_profile = FarmerProfile.query.get(farmer_id)
+        if not farmer_profile:
+            return jsonify({'detail': 'Farmer profile not found.'}), 404
+
+        if farmer_profile.user_id != current_user.id:
+            return jsonify({'detail': 'Not authorized to access these batches.'}), 403
+
+        if request.method == 'GET':
+            batches = Batch.query.filter_by(farmer_id=farmer_profile.id).order_by(Batch.created_at.desc()).all()
+            return jsonify([batch_to_dict(b) for b in batches])
+
+        data = request.get_json() or {}
+        batch = Batch(
+            farmer_id=farmer_profile.id,
+            batch_code=data.get('batch_code', '').strip() or f"BATCH-{int(datetime.utcnow().timestamp())}",
+            product_name=data.get('product_name', '').strip(),
+            harvest_date=datetime.fromisoformat(data['harvest_date']).date() if data.get('harvest_date') else None,
+            quantity=int(data.get('quantity', 0) or 0),
+            unit=data.get('unit', 'kg'),
+            status=data.get('status', 'harvested') or 'harvested',
+        )
+
+        if not batch.product_name or batch.quantity <= 0:
+            return jsonify({'detail': 'Product name and a positive quantity are required.'}), 400
+
+        db.session.add(batch)
+        db.session.commit()
+        return jsonify(batch_to_dict(batch)), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'detail': str(e)}), 500
+
+@app.route('/api/farmer/profile', methods=['GET', 'PUT'])
+@token_required
+def farmer_profile(current_user):
+    try:
+        # Ensure user is a farmer
+        if current_user.role != UserRole.farmer:
+            return jsonify({'detail': 'Access denied. Only farmers can access this endpoint.'}), 403
+        
+        farmer_profile = FarmerProfile.query.filter_by(user_id=current_user.id).first()
+        if not farmer_profile:
+            return jsonify({'detail': 'Farmer profile not found.'}), 404
+        
+        if request.method == 'GET':
+            return jsonify(farmer_profile_to_dict(farmer_profile))
+        
+        # PUT request - update profile
+        data = request.get_json()
+        if not data:
+            return jsonify({'detail': 'No data provided for update.'}), 400
+        
+        # Update fields if provided
+        if 'farm_name' in data and data['farm_name'].strip():
+            farmer_profile.farm_name = data['farm_name'].strip()
+        if 'farm_location' in data and data['farm_location'].strip():
+            farmer_profile.farm_location = data['farm_location'].strip()
+        if 'primary_products' in data and data['primary_products'].strip():
+            farmer_profile.primary_products = data['primary_products'].strip()
+        
+        db.session.commit()
+        return jsonify(farmer_profile_to_dict(farmer_profile))
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'detail': str(e)}), 500
 
 @app.route('/health', methods=['GET'])

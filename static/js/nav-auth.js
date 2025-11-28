@@ -62,22 +62,25 @@ function setupEventListeners() {
 function checkAuthState() {
     const authRequired = document.body.hasAttribute('data-auth-required');
     const authUser = JSON.parse(localStorage.getItem('authUser') || 'null');
+    const currentPage = window.location.pathname.split('/').pop();
     
-    // Redirect to login if auth is required but user is not logged in
-    if (authRequired && !authUser) {
-        window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    // If we're on the login page and already authenticated, redirect to dashboard
+    if ((currentPage === 'login.html' || currentPage === 'signup.html') && authUser) {
+        const redirectUrl = authUser.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
+        // Only redirect if we're not already on the target page
+        if (!window.location.href.endsWith(redirectUrl)) {
+            window.location.href = redirectUrl;
+        }
         return;
     }
     
-    // Redirect to appropriate dashboard if user is logged in
-    if (authUser) {
-        const currentPage = window.location.pathname.split('/').pop();
-        const isAuthPage = ['login.html', 'signup.html'].includes(currentPage);
-        
-        if (isAuthPage) {
-            const redirectUrl = authUser.role === 'farmer' ? 'farmer-dashboard.html' : 'index.html';
-            window.location.href = redirectUrl;
+    // If auth is required but user is not logged in, redirect to login
+    if (authRequired && !authUser) {
+        // Only redirect if we're not already on the login page
+        if (currentPage !== 'login.html') {
+            window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname);
         }
+        return;
     }
 }
 
