@@ -215,8 +215,12 @@
             <a href="/static/contact.html">Contact</a>
         </div>
         <div class="auth-buttons">
-            <button class="btn btn-outline">Login</button>
-            <button class="btn btn-primary">Sign Up</button>
+            <button class="btn btn-outline" onclick="window.location.href='login.html'">Login</button>
+            <button class="btn btn-primary" onclick="window.location.href='signup.html'">Sign Up</button>
+        </div>
+        <div id="user-menu" style="display: none; align-items: center; gap: 0.75rem;">
+            <span class="user-name" style="color: var(--accent-primary);"></span>
+            <button class="btn btn-outline" id="logout-btn">Logout</button>
         </div>
     </nav>
 
@@ -230,65 +234,67 @@
             </div>
 
             <!-- Product Info -->
-<!-- Product Info -->
-<div class="product-info">
-    <h1 class="product-title" id="productName">Loading...</h1>
-    <p class="farmer-info" id="farmerInfo">Farmer: Loading...</p>
-    <div class="product-price" id="productPrice">₹--</div>
+            <div class="product-info">
+                <h1 class="product-title" id="productName">Loading...</h1>
+                <p class="farmer-info" id="farmerInfo">Farmer: Loading...</p>
+                <div class="product-price" id="productPrice">₹--</div>
 
-    <div class="product-description">
-        <h3>Description</h3>
-        <p id="productDescription">Loading description...</p>
-    </div>
+                <div class="product-description">
+                    <h3>Description</h3>
+                    <p id="productDescription">Loading description...</p>
+                </div>
 
-    <!-- IoT Sensor Data -->
-    <div class="sensor-section">
-        <h3>🌡️ IoT Sensor Verification</h3>
-        <div class="sensor-grid">
-            <div class="sensor-card">
-                <div>💧 Soil Moisture</div>
-                <div class="sensor-value" id="soilMoisture">--%</div>
-                <div class="sensor-status" id="soilStatus">--</div>
+                <!-- IoT Sensor Data -->
+                <div class="sensor-section">
+                    <h3>🌡️ IoT Sensor Verification</h3>
+                    <div class="sensor-grid">
+                        <div class="sensor-card">
+                            <div>💧 Soil Moisture</div>
+                            <div class="sensor-value" id="soilMoisture">--%</div>
+                            <div class="sensor-status" id="soilStatus">--</div>
+                        </div>
+                        <div class="sensor-card">
+                            <div>🌡️ Temperature</div>
+                            <div class="sensor-value" id="temperature">--°C</div>
+                            <div class="sensor-status" id="tempStatus">--</div>
+                        </div>
+                        <div class="sensor-card">
+                            <div>💨 Humidity</div>
+                            <div class="sensor-value" id="humidity">--%</div>
+                            <div class="sensor-status" id="humidityStatus">--</div>
+                        </div>
+                    </div>
+                    
+                    <div class="verification-status" id="verificationStatus" style="display: none;">
+                        <span id="statusText">Verifying...</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary btn-large" onclick="addToCart()">Add to Cart</button>
+                    <button class="btn btn-outline btn-large" onclick="buyNow()">Buy Now</button>
+                </div>
             </div>
-            <div class="sensor-card">
-                <div>🌡️ Temperature</div>
-                <div class="sensor-value" id="temperature">--°C</div>
-                <div class="sensor-status" id="tempStatus">--</div>
-            </div>
-            <div class="sensor-card">
-                <div>💨 Humidity</div>
-                <div class="sensor-value" id="humidity">--%</div>
-                <div class="sensor-status" id="humidityStatus">--</div>
+
+            <!-- Blockchain Section -->
+            <div class="blockchain-section">
+                <h3>⛓️ Blockchain Verification</h3>
+                <p>Sensor data securely stored on blockchain</p>
+                <div style="margin-top: 1rem;">
+                    <strong>Transaction Hash:</strong> 
+                    <span style="font-family: monospace;">0x5a7b3c...e42f</span>
+                </div>
+                <div>
+                    <strong>Last Updated:</strong> 
+                    <span id="lastUpdated">Just now</span>
+                </div>
             </div>
         </div>
-        
-        <div class="verification-status" id="verificationStatus" style="display: none;">
-            <span id="statusText">Verifying...</span>
-        </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-        <button class="btn btn-primary btn-large" onclick="addToCart()">Add to Cart</button>
-        <button class="btn btn-outline btn-large" onclick="buyNow()">Buy Now</button>
-    </div>
-</div>
-
-        <!-- Blockchain Section -->
-        <div class="blockchain-section">
-            <h3>⛓️ Blockchain Verification</h3>
-            <p>Sensor data securely stored on blockchain</p>
-            <div style="margin-top: 1rem;">
-                <strong>Transaction Hash:</strong> 
-                <span style="font-family: monospace;">0x5a7b3c...e42f</span>
-            </div>
-            <div>
-                <strong>Last Updated:</strong> 
-                <span id="lastUpdated">Just now</span>
-            </div>
-        </div>
-    </div>
-
+    <script src="/static/js/cart.js"></script>
+    <script src="/static/js/nav-auth.js"></script>
     <script>
         // Simple JavaScript to make it interactive
         document.addEventListener('DOMContentLoaded', function() {
@@ -424,11 +430,72 @@ function generateSensorData() {
 
 // Cart functions
 function addToCart() {
-    alert('Add to cart functionality - connect to your backend');
+    const productId = getProductId() || '1';
+    const name = document.getElementById('productName').textContent || 'Product';
+    const priceText = document.getElementById('productPrice').textContent || '0';
+    const numericPrice = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+    const image = document.getElementById('productImage').src;
+
+    if (window.cartManager) {
+        window.cartManager.addToCart(productId, name, numericPrice, 1, image);
+    } else {
+        alert('Cart system not loaded yet.');
+    }
 }
 
-function buyNow() {
-    alert('Buy now functionality - connect to your backend');
+async function buyNow() {
+    const authUser = JSON.parse(localStorage.getItem('authUser') || 'null');
+    const authToken = localStorage.getItem('authToken');
+
+    if (!authUser || !authToken || authUser.role !== 'customer') {
+        alert('Please log in as a customer to place an order.');
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const productId = parseInt(getProductId() || '0', 10);
+    if (!productId) {
+        alert('Invalid product.');
+        return;
+    }
+
+    const orderPayload = {
+        customer_id: authUser.id,
+        items: [
+            {
+                product_id: productId,
+                quantity: 1
+            }
+        ]
+    };
+
+    try {
+        const response = await fetch('/api/orders', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(orderPayload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const msg = errorData.detail || 'Failed to place order.';
+            alert(msg);
+            return;
+        }
+
+        // Optional: clear cart after direct buy
+        if (window.cartManager) {
+            window.cartManager.clearCart();
+        }
+
+        localStorage.setItem('orderSuccess', 'true');
+        window.location.href = 'dashboard.html';
+    } catch (error) {
+        console.error('Error placing order:', error);
+        alert('An error occurred while placing your order.');
+    }
 }
 
 // Load product when page loads

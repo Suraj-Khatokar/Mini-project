@@ -232,11 +232,16 @@
             border-radius: 10px;
             border: 2px solid var(--card-border);
             background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
+            color: #000000;
             font-family: 'Nunito', sans-serif;
             font-size: 0.95rem;
             transition: all 0.3s ease;
             backdrop-filter: blur(10px);
+        }
+
+        .filter-select option {
+            background: #ffffff;
+            color: #000000;
         }
 
         .filter-select:focus {
@@ -250,6 +255,26 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 2.5rem;
+        }
+
+        .product-grid.list-view {
+            display: block;
+        }
+
+        .product-grid.list-view .product-card {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .product-grid.list-view .product-image {
+            width: 260px;
+            height: 100%;
+            max-height: 260px;
+        }
+
+        .product-grid.list-view .product-info {
+            flex: 1;
         }
 
         .product-card {
@@ -275,10 +300,6 @@
             display: block;
             background: linear-gradient(45deg, #1a2f1a, #2d5a2d);
             transition: transform 0.3s ease;
-        }
-
-        .product-card:hover .product-image {
-            transform: scale(1.05);
         }
 
         .product-info {
@@ -443,6 +464,15 @@
             <a href="/static/login.html" class="btn btn-outline">Login</a>
             <a href="/static/signup.html" class="btn btn-primary">Sign Up</a>
         </div>
+        <div id="user-menu" style="display: none; align-items: center; gap: 0.75rem; position: relative;">
+            <button class="btn btn-outline user-btn" type="button">
+                <span class="user-name" style="color: var(--accent-primary);"></span>
+            </button>
+            <div class="dropdown-menu" style="display:none; position: absolute; top: 115%; right: 0; background: #020617; border: 1px solid var(--card-border); border-radius: 8px; min-width: 200px; box-shadow: 0 18px 40px rgba(0,0,0,0.7); z-index: 1500; overflow: hidden;">
+                <a href="dashboard.html" style="display:block; padding: 0.8rem 1.1rem; color: #fff; text-decoration:none; font-size:0.9rem; background: rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">Dashboard</a>
+                <button id="logout-btn" style="width:100%; text-align:left; padding:0.8rem 1.1rem; background:rgba(255,255,255,0.1); border:none; color:#ff4444; font-size:0.9rem; cursor:pointer;">Logout</button>
+            </div>
+        </div>
     </nav>
 
     <!-- Marketplace Section -->
@@ -462,7 +492,7 @@
                 <div class="filters">
                     <div class="filter-group">
                         <label>Category</label>
-                        <select class="filter-select">
+                        <select class="filter-select" id="categoryFilter">
                             <option>All Categories</option>
                             <option>Grains & Cereals</option>
                             <option>Vegetables</option>
@@ -473,7 +503,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Price Range</label>
-                        <select class="filter-select">
+                        <select class="filter-select" id="priceFilter">
                             <option>Any Price</option>
                             <option>Under ₹50</option>
                             <option>₹50 - ₹100</option>
@@ -483,7 +513,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Farm Location</label>
-                        <select class="filter-select">
+                        <select class="filter-select" id="locationFilter">
                             <option>Any Location</option>
                             <option>Punjab</option>
                             <option>Maharashtra</option>
@@ -494,7 +524,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Sort By</label>
-                        <select class="filter-select">
+                        <select class="filter-select" id="sortFilter">
                             <option>Newest First</option>
                             <option>Price: Low to High</option>
                             <option>Price: High to Low</option>
@@ -506,21 +536,21 @@
 
             <!-- Results Info -->
             <div class="results-info">
-                <div class="results-count">Showing 12 products</div>
+                <div class="results-count" id="resultsCount">Showing 6 products</div>
                 <div class="sort-group">
                     <label>View:</label>
-                    <select class="filter-select">
-                        <option>Grid View</option>
-                        <option>List View</option>
+                    <select class="filter-select" id="viewMode">
+                        <option value="grid">Grid View</option>
+                        <option value="list">List View</option>
                     </select>
                 </div>
             </div>
 
             <!-- Product Grid -->
-            <div class="product-grid">
+            <div class="product-grid" id="productGrid">
                 <!-- Product 1 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Organic Wheat" class="product-image">
+                <div class="product-card" data-category="Grains & Cereals" data-price="65" data-location="Punjab">
+                    <img src="https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Organic Wheat Grains" class="product-image">
                     <div class="product-info">
                         <h3 class="product-name">Organic Wheat Grains</h3>
                         <div class="farmer-name">Farmer: Traditional Grains Co.</div>
@@ -539,8 +569,8 @@
                 </div>
 
                 <!-- Product 2 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Fresh Vegetables" class="product-image">
+                <div class="product-card" data-category="Vegetables" data-price="45" data-location="Maharashtra">
+                    <img src="https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=500&q=80" alt="Fresh Organic Tomatoes" class="product-image">
                     <div class="product-info">
                         <h3 class="product-name">Fresh Organic Tomatoes</h3>
                         <div class="farmer-name">Farmer: Green Valley Farms</div>
@@ -558,8 +588,8 @@
                 </div>
 
                 <!-- Product 3 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1567306301408-9b74779a11af?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Organic Potatoes" class="product-image">
+                <div class="product-card" data-category="Vegetables" data-price="35" data-location="Karnataka">
+                    <img src="https://images.unsplash.com/photo-1445282768819-726539190494?auto=format&fit=crop&w=500&q=80" alt="Organic Potatoes" class="product-image">
                     <div class="product-info">
                         <h3 class="product-name">Organic Potatoes</h3>
                         <div class="farmer-name">Farmer: Root Harvest Co.</div>
@@ -577,8 +607,8 @@
                 </div>
 
                 <!-- Product 4 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1556679343-c7306c1976bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Basmati Rice" class="product-image">
+                <div class="product-card" data-category="Grains & Cereals" data-price="120" data-location="Uttar Pradesh">
+                    <img src="https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Premium Basmati Rice" class="product-image">
                     <div class="product-info">
                         <h3 class="product-name">Premium Basmati Rice</h3>
                         <div class="farmer-name">Farmer: Himalayan Grains</div>
@@ -595,29 +625,9 @@
                     </div>
                 </div>
 
-                <!-- Product 5 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1592921870784-2a4b0a1f3b3d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Organic Milk" class="product-image">
-                    <div class="product-info">
-                        <h3 class="product-name">Fresh Organic Milk</h3>
-                        <div class="farmer-name">Farmer: Happy Cows Dairy</div>
-                        <div class="product-price">₹60/liter</div>
-                        <p class="product-description">Pure milk from grass-fed cows, no additives or preservatives.</p>
-                        <div class="badges">
-                            <span class="badge badge-verified">IoT Verified</span>
-                            <span class="badge badge-organic">100% Organic</span>
-                            <span class="badge badge-fresh">Daily Fresh</span>
-                        </div>
-                        <div class="product-actions">
-                            <button class="btn btn-primary btn-small">View Details</button>
-                            <button class="btn btn-outline btn-small btn-icon">♥</button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Product 6 -->
-                <div class="product-card">
-                    <img src="https://images.unsplash.com/photo-1571772996211-2f02c9727629?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" alt="Organic Honey" class="product-image">
+                <div class="product-card" data-category="Spices" data-price="350" data-location="Karnataka">
+                    <img src="https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=500&q=80" alt="Pure Forest Honey" class="product-image">
                     <div class="product-info">
                         <h3 class="product-name">Pure Forest Honey</h3>
                         <div class="farmer-name">Farmer: Bee Natural</div>
@@ -638,38 +648,112 @@
     </section>
 
     <script>
-        // Simple search functionality
-        document.querySelector('.search-btn').addEventListener('click', function() {
+        function parsePrice(text) {
+            const m = text.replace(/[^0-9]/g, '');
+            return m ? parseInt(m, 10) : 0;
+        }
+
+        function applyFilters() {
             const searchTerm = document.querySelector('.search-input').value.toLowerCase();
-            const productCards = document.querySelectorAll('.product-card');
-            
-            productCards.forEach(card => {
-                const productName = card.querySelector('.product-name').textContent.toLowerCase();
-                const farmerName = card.querySelector('.farmer-name').textContent.toLowerCase();
-                const description = card.querySelector('.product-description').textContent.toLowerCase();
-                
-                if (productName.includes(searchTerm) || farmerName.includes(searchTerm) || description.includes(searchTerm)) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
+            const category = document.getElementById('categoryFilter').value;
+            const priceRange = document.getElementById('priceFilter').value;
+            const location = document.getElementById('locationFilter').value;
+            const sortBy = document.getElementById('sortFilter').value;
+            const productGrid = document.getElementById('productGrid');
+            const cards = Array.from(document.querySelectorAll('.product-card'));
+
+            let visibleCards = cards.filter(card => {
+                const name = card.querySelector('.product-name').textContent.toLowerCase();
+                const farmer = card.querySelector('.farmer-name').textContent.toLowerCase();
+                const desc = card.querySelector('.product-description').textContent.toLowerCase();
+                const matchesSearch = !searchTerm || name.includes(searchTerm) || farmer.includes(searchTerm) || desc.includes(searchTerm);
+
+                const cardCategory = card.getAttribute('data-category') || '';
+                const matchesCategory = category === 'All Categories' || cardCategory === category;
+
+                const cardLocation = card.getAttribute('data-location') || '';
+                const matchesLocation = location === 'Any Location' || cardLocation === location;
+
+                const priceValue = parseInt(card.getAttribute('data-price') || '0', 10);
+                let matchesPrice = true;
+                if (priceRange === 'Under ₹50') matchesPrice = priceValue < 50;
+                else if (priceRange === '₹50 - ₹100') matchesPrice = priceValue >= 50 && priceValue <= 100;
+                else if (priceRange === '₹100 - ₹200') matchesPrice = priceValue > 100 && priceValue <= 200;
+                else if (priceRange === 'Over ₹200') matchesPrice = priceValue > 200;
+
+                return matchesSearch && matchesCategory && matchesLocation && matchesPrice;
+            });
+
+            // Sort
+            if (sortBy === 'Price: Low to High') {
+                visibleCards.sort((a, b) => (parseInt(a.getAttribute('data-price') || '0', 10) - parseInt(b.getAttribute('data-price') || '0', 10)));
+            } else if (sortBy === 'Price: High to Low') {
+                visibleCards.sort((a, b) => (parseInt(b.getAttribute('data-price') || '0', 10) - parseInt(a.getAttribute('data-price') || '0', 10)));
+            }
+
+            cards.forEach(card => {
+                card.style.display = 'none';
+            });
+            visibleCards.forEach(card => {
+                card.style.display = '';
+            });
+
+            const resultsCount = document.getElementById('resultsCount');
+            if (resultsCount) {
+                resultsCount.textContent = `Showing ${visibleCards.length} product${visibleCards.length === 1 ? '' : 's'}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchBtn = document.querySelector('.search-btn');
+            const searchInput = document.querySelector('.search-input');
+            const categoryFilter = document.getElementById('categoryFilter');
+            const priceFilter = document.getElementById('priceFilter');
+            const locationFilter = document.getElementById('locationFilter');
+            const sortFilter = document.getElementById('sortFilter');
+            const viewMode = document.getElementById('viewMode');
+            const productGrid = document.getElementById('productGrid');
+
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function() {
+                    applyFilters();
+                });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        applyFilters();
+                    }
+                });
+            }
+
+            [categoryFilter, priceFilter, locationFilter, sortFilter].forEach(el => {
+                if (el) {
+                    el.addEventListener('change', applyFilters);
                 }
             });
-        });
 
-        // Favorite button functionality
-        document.querySelectorAll('.btn-icon').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.textContent = this.textContent === '♥' ? '💚' : '♥';
-            });
-        });
+            if (viewMode && productGrid) {
+                viewMode.addEventListener('change', function() {
+                    if (this.value === 'list') {
+                        productGrid.classList.add('list-view');
+                    } else {
+                        productGrid.classList.remove('list-view');
+                    }
+                });
+            }
 
-        // Filter functionality
-        document.querySelectorAll('.filter-select').forEach(select => {
-            select.addEventListener('change', function() {
-                // In a real app, this would filter products based on selection
-                console.log('Filter changed:', this.value);
+            document.querySelectorAll('.btn-icon').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.textContent = this.textContent === '♥' ? '💚' : '♥';
+                });
             });
+
+            document.getElementById('resultsCount').textContent = `Showing ${document.querySelectorAll('.product-card').length} products`;
         });
     </script>
+
+    <script src="/static/js/nav-auth.js"></script>
 </body>
 </html>
