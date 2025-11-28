@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 import os
 from pathlib import Path
@@ -56,10 +56,14 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, index=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.customer)
+    phone = db.Column(db.String(20), nullable=True)
+    address = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
 
     farmer_profile = relationship("FarmerProfile", back_populates="user", uselist=False)
     orders = relationship("Order", back_populates="customer")
+    reviews = relationship("Review", back_populates="user")
+    wishlist_items = relationship("Wishlist", back_populates="user")
 
 class FarmerProfile(db.Model):
     __tablename__ = "farmer_profiles"
@@ -90,6 +94,8 @@ class Product(db.Model):
     farmer = relationship("FarmerProfile", back_populates="products")
     sensor_readings = relationship("SensorReading", back_populates="product")
     order_items = relationship("OrderItem", back_populates="product")
+    reviews = relationship("Review", back_populates="product")
+    wishlist_items = relationship("Wishlist", back_populates="product")
 
 class SensorReading(db.Model):
     __tablename__ = "sensor_readings"
@@ -135,6 +141,28 @@ class OrderItem(db.Model):
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
 
+class Review(db.Model):
+    __tablename__ = "reviews"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id", ondelete="CASCADE"))
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text)
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="reviews")
+    product = relationship("Product", back_populates="reviews")
+
+class Wishlist(db.Model):
+    __tablename__ = "wishlist"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"))
+    product_id = db.Column(db.Integer, db.ForeignKey("products.id", ondelete="CASCADE"))
+    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="wishlist_items")
+    product = relationship("Product", back_populates="wishlist_items")
+
 # Helper functions
 def hash_password(password: str) -> str:
     return generate_password_hash(password)
@@ -147,7 +175,9 @@ def token_required(f):
     def decorated(*args, **kwargs):
         token = None
         if 'Authorization' in request.headers:
-            token = request.headers['Authorization'].split(" ")[1] if "Bearer" in request.headers['Authorization'] else None
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ")[1]
         
         if not token or not token.startswith("mock-token-"):
             return jsonify({'message': 'Invalid authentication credentials'}), 401
@@ -170,6 +200,8 @@ def user_to_dict(user):
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
+        'phone': user.phone,
+        'address': user.address,
         'role': user.role.value if user.role else 'customer',
         'created_at': user.created_at.isoformat() if user.created_at else None,
         'farmer_profile': farmer_profile_to_dict(user.farmer_profile) if user.farmer_profile else None
@@ -200,7 +232,8 @@ def product_to_dict(product):
         'farmer_id': product.farmer_id,
         'created_at': product.created_at.isoformat() if product.created_at else None,
         'farmer': farmer_profile_to_dict(product.farmer) if product.farmer else None,
-        'sensor_readings': [sensor_reading_to_dict(sr) for sr in product.sensor_readings]
+        'sensor_readings': [sensor_reading_to_dict(sr) for sr in product.sensor_readings],
+        'avg_rating': calculate_product_rating(product.id)
     }
 
 def sensor_reading_to_dict(sensor_reading):
@@ -234,10 +267,60 @@ def order_to_dict(order):
     }
 
 def order_item_to_dict(item):
+    product = Product.query.get(item.product_id)
     return {
+        'id': item.id,
         'product_id': item.product_id,
+        'product_name': product.name if product else 'Unknown Product',
         'quantity': item.quantity,
-        'unit_price_inr': item.unit_price_inr
+        'unit_price_inr': item.unit_price_inr,
+        'total_price': item.quantity * item.unit_price_inr
+    }
+
+def review_to_dict(review):
+    return {
+        'id': review.id,
+        'user_name': f"{review.user.first_name} {review.user.last_name}",
+        'rating': review.rating,
+        'comment': review.comment,
+        'created_at': review.created_at.isoformat() if review.created_at else None
+    }
+
+def wishlist_to_dict(wishlist):
+    return {
+        'id': wishlist.id,
+        'product': product_to_dict(wishlist.product) if wishlist.product else None,
+        'created_at': wishlist.created_at.isoformat() if wishlist.created_at else None
+    }
+
+def calculate_product_rating(product_id):
+    """Calculate average rating for a product"""
+    avg_rating = db.session.query(func.avg(Review.rating)).filter(
+        Review.product_id == product_id
+    ).scalar()
+    return round(float(avg_rating or 0), 1)
+
+def calculate_user_stats(user_id):
+    """Calculate user statistics for dashboard"""
+    total_orders = Order.query.filter_by(customer_id=user_id).count()
+    
+    total_spent = db.session.query(func.coalesce(func.sum(Order.total_price_inr), 0)).filter(
+        Order.customer_id == user_id
+    ).scalar()
+    
+    wishlist_count = Wishlist.query.filter_by(user_id=user_id).count()
+    
+    # Calculate average rating from user's reviews
+    avg_rating = db.session.query(func.avg(Review.rating)).filter(
+        Review.user_id == user_id
+    ).scalar()
+    avg_rating = round(float(avg_rating or 4.5), 1)  # Default to 4.5 if no reviews
+    
+    return {
+        'total_orders': total_orders,
+        'total_spent': total_spent,
+        'wishlist_count': wishlist_count,
+        'avg_rating': avg_rating
     }
 
 # Seed data
@@ -253,6 +336,8 @@ def seed_products():
             email="farmer@smartorganic.com",
             password_hash=hash_password("password123"),
             role=UserRole.farmer,
+            phone="+91 9876543210",
+            address="123 Farm Road, Bangalore, Karnataka - 560068"
         ),
         farm_name="Rajesh Organic Farms",
         farm_location="Bangalore, India",
@@ -263,11 +348,13 @@ def seed_products():
     
     # Create sample customer
     sample_customer = User(
-        first_name="John",
-        last_name="Doe",
-        email="customer@smartorganic.com",
+        first_name="Rohan",
+        last_name="Sharma",
+        email="rohan.sharma@email.com",
         password_hash=hash_password("password123"),
         role=UserRole.customer,
+        phone="+91 9876543210",
+        address="123 Main Street, Koramangala, Bangalore - 560034"
     )
     db.session.add(sample_customer)
     db.session.flush()
@@ -290,11 +377,11 @@ def seed_products():
             "image_url": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=500&q=80",
         },
         {
-            "name": "Organic Rice",
+            "name": "Organic Wheat Grains",
             "category": "grains",
             "price_inr": 65,
             "unit": "kg",
-            "description": "Traditionally grown organic rice variety.",
+            "description": "Traditionally grown organic wheat grains.",
             "image_url": "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=500&q=80",
         },
         {
@@ -322,12 +409,12 @@ def seed_products():
             "image_url": "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?auto=format&fit=crop&w=500&q=80",
         },
         {
-            "name": "Organic Bananas",
-            "category": "fruits",
-            "price_inr": 90,
-            "unit": "dozen",
-            "description": "Naturally ripened bananas with zero chemicals.",
-            "image_url": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=500&q=80",
+            "name": "Organic Potatoes",
+            "category": "vegetables",
+            "price_inr": 35,
+            "unit": "kg",
+            "description": "Naturally grown potatoes with zero chemicals.",
+            "image_url": "https://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=500&q=80",
         },
     ]
 
@@ -345,6 +432,45 @@ def seed_products():
             )
         )
 
+    # Create sample orders for the customer
+    sample_order = Order(
+        customer_id=sample_customer.id,
+        total_price_inr=130,
+        status="delivered"
+    )
+    db.session.add(sample_order)
+    db.session.flush()
+
+    # Add order items
+    wheat_product = Product.query.filter_by(name="Organic Wheat Grains").first()
+    if wheat_product:
+        order_item = OrderItem(
+            order_id=sample_order.id,
+            product_id=wheat_product.id,
+            quantity=2,
+            unit_price_inr=wheat_product.price_inr
+        )
+        db.session.add(order_item)
+
+    # Add sample reviews
+    if wheat_product:
+        review = Review(
+            user_id=sample_customer.id,
+            product_id=wheat_product.id,
+            rating=5,
+            comment="Excellent quality wheat grains! Very fresh and organic."
+        )
+        db.session.add(review)
+
+    # Add sample wishlist items
+    tomato_product = Product.query.filter_by(name="Organic Tomatoes").first()
+    if tomato_product:
+        wishlist = Wishlist(
+            user_id=sample_customer.id,
+            product_id=tomato_product.id
+        )
+        db.session.add(wishlist)
+
     db.session.commit()
 
 # Initialize database
@@ -360,7 +486,7 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-# Routes
+# ========== AUTHENTICATION ROUTES ==========
 @app.route('/api/auth/signup', methods=['POST'])
 def signup():
     try:
@@ -377,7 +503,9 @@ def signup():
             last_name=data.get('last_name', '').strip(),
             email=data.get('email', '').lower(),
             password_hash=hash_password(data.get('password', '')),
-            role=UserRole(data.get('role', 'customer'))
+            role=UserRole(data.get('role', 'customer')),
+            phone=data.get('phone', ''),
+            address=data.get('address', '')
         )
         db.session.add(user)
         db.session.flush()
@@ -397,10 +525,19 @@ def signup():
             db.session.add(profile)
 
         db.session.commit()
-        return jsonify(user_to_dict(user)), 201
+        
+        # Generate token for immediate login
+        token = f"mock-token-{user.id}"
+        
+        return jsonify({
+            'message': 'User created successfully',
+            'user': user_to_dict(user),
+            'token': token
+        }), 201
         
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Signup error: {str(e)}")
         return jsonify({'detail': f'Error creating user: {str(e)}'}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -422,14 +559,14 @@ def login():
         if role and user.role.value != role.lower():
             return jsonify({
                 'detail': f'Please login as a {role} to continue.',
-                'user_role': user.role.value  # Include actual role for debugging
+                'user_role': user.role.value
             }), 403
 
         # Generate token
         token = f"mock-token-{user.id}"
         
         user_data = user_to_dict(user)
-        print(f"Login successful for {user.email} with role {user_data['role']}")  # Debug log
+        logger.info(f"Login successful for {user.email} with role {user_data['role']}")
         
         return jsonify({
             'message': 'Login successful',
@@ -441,12 +578,56 @@ def login():
         logger.error(f"Login error for {data.get('email')}: {str(e)}")
         return jsonify({'detail': 'An error occurred during login. Please try again.'}), 500
 
+# ========== DASHBOARD ROUTES ==========
+@app.route('/api/user/profile', methods=['GET'])
+@token_required
+def get_user_profile(current_user):
+    """Get current user's profile data with statistics"""
+    try:
+        user_data = user_to_dict(current_user)
+        stats = calculate_user_stats(current_user.id)
+        
+        user_data['stats'] = stats
+        return jsonify(user_data)
+        
+    except Exception as e:
+        logger.error(f"Profile error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error fetching user profile'}), 500
+
+@app.route('/api/user/stats', methods=['GET'])
+@token_required
+def get_user_stats(current_user):
+    """Get user statistics for dashboard"""
+    try:
+        stats = calculate_user_stats(current_user.id)
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Stats error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error fetching user statistics'}), 500
+
+@app.route('/api/user/orders/summary', methods=['GET'])
+@token_required
+def get_user_orders_summary(current_user):
+    """Get summary of user's recent orders"""
+    try:
+        orders = Order.query.filter_by(customer_id=current_user.id)\
+            .order_by(Order.created_at.desc())\
+            .limit(5)\
+            .all()
+        
+        return jsonify([order_to_dict(order) for order in orders])
+    except Exception as e:
+        logger.error(f"Orders summary error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error fetching orders summary'}), 500
+
+# ========== PRODUCT ROUTES ==========
 @app.route('/api/products', methods=['GET'])
 def list_products():
     try:
         category = request.args.get('category')
         price = request.args.get('price')
         certification = request.args.get('certification')
+        limit = request.args.get('limit', type=int)
         
         query = Product.query
 
@@ -467,10 +648,14 @@ def list_products():
             elif certification == "iot":
                 query = query.filter(Product.iot_verified.is_(True))
 
+        if limit:
+            query = query.limit(limit)
+
         products = query.order_by(Product.created_at.desc()).all()
         return jsonify([product_to_dict(product) for product in products])
     
     except Exception as e:
+        logger.error(f"Products list error: {str(e)}")
         return jsonify({'detail': str(e)}), 500
 
 @app.route('/api/products/<int:product_id>', methods=['GET'])
@@ -479,29 +664,37 @@ def get_product(product_id):
         product = Product.query.get(product_id)
         if not product:
             return jsonify({'detail': 'Product not found'}), 404
-        return jsonify(product_to_dict(product))
+        
+        product_data = product_to_dict(product)
+        
+        # Add reviews to product data
+        reviews = Review.query.filter_by(product_id=product_id).all()
+        product_data['reviews'] = [review_to_dict(review) for review in reviews]
+        
+        return jsonify(product_data)
     except Exception as e:
+        logger.error(f"Product detail error for {product_id}: {str(e)}")
         return jsonify({'detail': str(e)}), 500
 
-@app.route('/api/contact', methods=['POST'])
-def submit_contact_form():
+@app.route('/api/products/featured', methods=['GET'])
+def get_featured_products():
+    """Get featured products for dashboard"""
     try:
-        data = request.get_json()
-        message = ContactMessage(
-            name=data.get('name', ''),
-            email=data.get('email', ''),
-            subject=data.get('subject', ''),
-            message=data.get('message', '')
-        )
-        db.session.add(message)
-        db.session.commit()
-        return jsonify(contact_message_to_dict(message)), 201
+        featured_products = Product.query\
+            .filter_by(organic_certified=True, iot_verified=True)\
+            .order_by(Product.created_at.desc())\
+            .limit(6)\
+            .all()
+        
+        return jsonify([product_to_dict(product) for product in featured_products])
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'detail': str(e)}), 500
+        logger.error(f"Featured products error: {str(e)}")
+        return jsonify({'detail': 'Error fetching featured products'}), 500
 
+# ========== ORDER ROUTES ==========
 @app.route('/api/orders', methods=['POST'])
-def create_order():
+@token_required
+def create_order(current_user):
     try:
         data = request.get_json()
         items = data.get('items', [])
@@ -531,13 +724,19 @@ def create_order():
                 unit_price_inr=product.price_inr
             ))
 
-        order = Order(customer_id=customer.id, total_price_inr=total_price, items=order_items)
+        order = Order(
+            customer_id=current_user.id, 
+            total_price_inr=total_price, 
+            items=order_items
+        )
         db.session.add(order)
         db.session.commit()
+        
         return jsonify(order_to_dict(order)), 201
     
     except Exception as e:
         db.session.rollback()
+        logger.error(f"Create order error for user {current_user.id}: {str(e)}")
         return jsonify({'detail': str(e)}), 500
 
 @app.route('/api/orders/<int:customer_id>', methods=['GET'])
@@ -546,14 +745,104 @@ def list_orders(customer_id):
         orders = Order.query.filter_by(customer_id=customer_id).order_by(Order.created_at.desc()).all()
         return jsonify([order_to_dict(order) for order in orders])
     except Exception as e:
+        logger.error(f"List orders error for customer {customer_id}: {str(e)}")
         return jsonify({'detail': str(e)}), 500
 
+@app.route('/api/user/orders', methods=['GET'])
+@token_required
+def get_user_orders(current_user):
+    """Get all orders for current user"""
+    try:
+        orders = Order.query.filter_by(customer_id=current_user.id)\
+            .order_by(Order.created_at.desc())\
+            .all()
+        return jsonify([order_to_dict(order) for order in orders])
+    except Exception as e:
+        logger.error(f"User orders error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error fetching user orders'}), 500
+
+# ========== WISHLIST ROUTES ==========
+@app.route('/api/user/wishlist', methods=['GET'])
+@token_required
+def get_user_wishlist(current_user):
+    """Get user's wishlist"""
+    try:
+        wishlist_items = Wishlist.query.filter_by(user_id=current_user.id)\
+            .order_by(Wishlist.created_at.desc())\
+            .all()
+        return jsonify([wishlist_to_dict(item) for item in wishlist_items])
+    except Exception as e:
+        logger.error(f"Wishlist error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error fetching wishlist'}), 500
+
+@app.route('/api/user/wishlist', methods=['POST'])
+@token_required
+def add_to_wishlist(current_user):
+    """Add product to user's wishlist"""
+    try:
+        data = request.get_json()
+        product_id = data.get('product_id')
+        
+        if not product_id:
+            return jsonify({'detail': 'Product ID is required'}), 400
+        
+        # Check if product exists
+        product = Product.query.get(product_id)
+        if not product:
+            return jsonify({'detail': 'Product not found'}), 404
+        
+        # Check if already in wishlist
+        existing = Wishlist.query.filter_by(
+            user_id=current_user.id, 
+            product_id=product_id
+        ).first()
+        
+        if existing:
+            return jsonify({'detail': 'Product already in wishlist'}), 400
+        
+        wishlist_item = Wishlist(
+            user_id=current_user.id,
+            product_id=product_id
+        )
+        db.session.add(wishlist_item)
+        db.session.commit()
+        
+        return jsonify(wishlist_to_dict(wishlist_item)), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Add to wishlist error for user {current_user.id}: {str(e)}")
+        return jsonify({'detail': 'Error adding to wishlist'}), 500
+
+# ========== CONTACT ROUTES ==========
+@app.route('/api/contact', methods=['POST'])
+def submit_contact_form():
+    try:
+        data = request.get_json()
+        message = ContactMessage(
+            name=data.get('name', ''),
+            email=data.get('email', ''),
+            subject=data.get('subject', ''),
+            message=data.get('message', '')
+        )
+        db.session.add(message)
+        db.session.commit()
+        return jsonify(contact_message_to_dict(message)), 201
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Contact form error: {str(e)}")
+        return jsonify({'detail': str(e)}), 500
+
+# ========== HEALTH CHECK ==========
 @app.route('/health', methods=['GET'])
 def healthcheck():
-    return jsonify({'status': 'ok', 'timestamp': datetime.utcnow().isoformat()})
+    return jsonify({
+        'status': 'ok', 
+        'timestamp': datetime.utcnow().isoformat(),
+        'database': 'connected'
+    })
 
-# ========== FIXED STATIC FILE SERVING ==========
-# Specific routes for main pages
+# ========== STATIC FILE SERVING ==========
 @app.route('/login')
 def serve_login():
     static_dir = Path(__file__).parent / 'static'
@@ -563,6 +852,11 @@ def serve_login():
 def serve_signup():
     static_dir = Path(__file__).parent / 'static'
     return send_from_directory(static_dir, 'signup.html')
+
+@app.route('/dashboard')
+def serve_dashboard():
+    static_dir = Path(__file__).parent / 'static'
+    return send_from_directory(static_dir, 'dashboard.html')
 
 @app.route('/marketplace')
 def serve_marketplace():
@@ -609,6 +903,7 @@ def serve_html_page(page_name):
     # Fallback to index.html for unknown pages
     return send_from_directory(static_dir, 'index.html')
 
+# Initialize database on startup
 with app.app_context():
     try:
         print("Creating database tables...")

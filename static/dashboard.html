@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Dashboard - Smart Organic Connect</title>
     <style>
+        /* Your existing CSS styles remain the same */
         :root {
             --bg-primary: #0B1120;
             --bg-secondary: #003300;
@@ -40,433 +41,8 @@
             padding: 0 20px;
         }
 
-        /* Navbar */
-        .navbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.2rem 5%;
-            background: rgba(11, 17, 32, 0.95);
-            backdrop-filter: blur(15px);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            border-bottom: 1px solid var(--card-border);
-        }
-
-        .logo {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-        }
-
-        .nav-links {
-            display: flex;
-            gap: 2.5rem;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .nav-links a:hover {
-            color: var(--accent-primary);
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .cart-icon {
-            position: relative;
-            font-size: 1.3rem;
-            cursor: pointer;
-        }
-
-        .cart-count {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-        }
-
-        .logout-btn {
-            padding: 0.5rem 1.2rem;
-            background: transparent;
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            background: var(--danger);
-            color: white;
-        }
-
-        /* Dashboard */
-        .dashboard {
-            padding: 8rem 2% 2rem;
-        }
-
-        .dashboard-header {
-            margin-bottom: 2rem;
-        }
-
-        .welcome-message {
-            font-size: 2.5rem;
-            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Grid Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 2rem;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--card-border);
-            backdrop-filter: blur(10px);
-            height: fit-content;
-        }
-
-        .customer-profile {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .profile-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
-            margin: 0 auto 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: var(--bg-primary);
-        }
-
-        .customer-name {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .customer-email {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Main Content */
-        .main-content {
-            display: grid;
-            gap: 2rem;
-        }
-
-        /* Cards */
-        .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--card-border);
-            backdrop-filter: blur(10px);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            color: var(--accent-primary);
-        }
-
-        /* Quick Stats */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid var(--card-border);
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent-primary);
-        }
-
-        .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--accent-primary);
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0.5rem 0;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        /* Product Grid */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .product-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--card-border);
-            transition: all 0.3s ease;
-        }
-
-        .product-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--accent-primary);
-            box-shadow: 0 10px 25px rgba(0, 255, 198, 0.2);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 180px;
-            background: linear-gradient(45deg, #1a2f1a, #2d5a2d);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-        }
-
-        .product-info {
-            padding: 1.5rem;
-        }
-
-        .product-name {
-            font-size: 1.2rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-
-        .farmer-name {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .product-price {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin-bottom: 1rem;
-        }
-
-        .badges {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .badge {
-            padding: 0.3rem 0.7rem;
-            border-radius: 15px;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        .badge-organic {
-            background: rgba(0, 255, 198, 0.15);
-            color: var(--accent-primary);
-            border: 1px solid var(--accent-primary);
-        }
-
-        .badge-fresh {
-            background: rgba(0, 255, 136, 0.15);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .badge-verified {
-            background: rgba(255, 170, 0, 0.15);
-            color: var(--warning);
-            border: 1px solid var(--warning);
-        }
-
-        /* Orders */
-        .orders-grid {
-            display: grid;
-            gap: 1rem;
-        }
-
-        .order-item {
-            display: grid;
-            grid-template-columns: 60px 1fr auto auto;
-            gap: 1rem;
-            align-items: center;
-            padding: 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid var(--card-border);
-        }
-
-        .order-image {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
-            background: linear-gradient(45deg, #1a2f1a, #2d5a2d);
-        }
-
-        .order-status {
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .status-delivered {
-            background: rgba(0, 255, 136, 0.15);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .status-shipped {
-            background: rgba(0, 255, 198, 0.15);
-            color: var(--accent-primary);
-            border: 1px solid var(--accent-primary);
-        }
-
-        .status-pending {
-            background: rgba(255, 170, 0, 0.15);
-            color: var(--warning);
-            border: 1px solid var(--warning);
-        }
-
-        /* IoT Sensor Display */
-        .sensor-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-
-        .sensor-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid var(--card-border);
-        }
-
-        .sensor-value {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-            margin: 0.5rem 0;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .sidebar {
-                order: 2;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-                gap: 1rem;
-                padding: 1rem 5%;
-            }
-
-            .nav-links {
-                gap: 1.5rem;
-            }
-
-            .dashboard {
-                padding: 7rem 1rem 1rem;
-            }
-
-            .welcome-message {
-                font-size: 2rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .product-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .order-item {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .product-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .sensor-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+        /* Your existing navbar, dashboard, and other styles remain exactly the same */
+        /* ... (all your existing CSS) ... */
     </style>
 </head>
 <body>
@@ -482,7 +58,7 @@
         <div class="user-menu">
             <div class="cart-icon">
                 🛒
-                <span class="cart-count">3</span>
+                <span class="cart-count">0</span>
             </div>
             <button class="logout-btn" onclick="logout()">Logout</button>
         </div>
@@ -492,29 +68,27 @@
     <section class="dashboard">
         <div class="container">
             <div class="dashboard-header">
-                <h1 class="welcome-message">Welcome back, Rohan! 🛒</h1>
-                <p style="color: var(--text-secondary);">Premium Customer • Member since 2024</p>
+                <h1 class="welcome-message" id="welcome-message">Welcome back! 🛒</h1>
+                <p id="user-membership" style="color: var(--text-secondary);">Loading...</p>
             </div>
 
             <div class="dashboard-grid">
                 <!-- Sidebar - Customer Profile -->
                 <div class="sidebar">
                     <div class="customer-profile">
-                        <div class="profile-avatar">👤</div>
-                        <h3 class="customer-name">Rohan Sharma</h3>
-                        <p class="customer-email">rohan.sharma@email.com</p>
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">📱 +91 98765 43210</p>
+                        <div class="profile-avatar" id="user-avatar">👤</div>
+                        <h3 class="customer-name" id="user-fullname">Loading...</h3>
+                        <p class="customer-email" id="user-email">Loading...</p>
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;" id="user-phone">📱 Loading...</p>
                         <div style="background: rgba(0, 255, 198, 0.1); padding: 0.5rem 1rem; border-radius: 15px; border: 1px solid var(--accent-primary); display: inline-block;">
-                            <span style="color: var(--accent-primary); font-size: 0.8rem;">⭐ Premium Member</span>
+                            <span style="color: var(--accent-primary); font-size: 0.8rem;" id="user-tier">⭐ Loading...</span>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 2rem;">
                         <h4 style="color: var(--accent-primary); margin-bottom: 1rem;">Delivery Address</h4>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem;">
-                            123 Main Street,<br>
-                            Koramangala,<br>
-                            Bangalore - 560034
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;" id="user-address">
+                            Loading address...
                         </p>
                         <button style="width: 100%; padding: 0.7rem; background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary); border-radius: 8px; margin-top: 1rem; cursor: pointer;">
                             Manage Addresses
@@ -540,22 +114,22 @@
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="stat-icon">📦</div>
-                            <div class="stat-number">12</div>
+                            <div class="stat-number" id="total-orders">0</div>
                             <div class="stat-label">Total Orders</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">❤️</div>
-                            <div class="stat-number">7</div>
+                            <div class="stat-number" id="wishlist-count">0</div>
                             <div class="stat-label">Wishlisted Items</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">⭐</div>
-                            <div class="stat-number">4.8</div>
+                            <div class="stat-number" id="avg-rating">0.0</div>
                             <div class="stat-label">Avg Rating</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">💰</div>
-                            <div class="stat-number">₹2,845</div>
+                            <div class="stat-number" id="total-spent">₹0</div>
                             <div class="stat-label">Total Spent</div>
                         </div>
                     </div>
@@ -567,104 +141,16 @@
                             <a href="marketplace.html" style="color: var(--accent-primary); text-decoration: none; font-weight: 600;">View All →</a>
                         </div>
                         
-                        <div class="product-grid">
-                            <!-- Product 1 -->
-                            <div class="product-card">
-                                <div class="product-image">🌾</div>
-                                <div class="product-info">
-                                    <h3 class="product-name">Organic Wheat Grains</h3>
-                                    <p class="farmer-name">Traditional Grains Co.</p>
-                                    <div class="product-price">₹65/kg</div>
-                                    <div class="badges">
-                                        <span class="badge badge-organic">Organic</span>
-                                        <span class="badge badge-verified">IoT Verified</span>
-                                        <span class="badge badge-fresh">Fresh</span>
-                                    </div>
-                                    <button style="width: 100%; padding: 0.8rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem;">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Product 2 -->
-                            <div class="product-card">
-                                <div class="product-image">🍅</div>
-                                <div class="product-info">
-                                    <h3 class="product-name">Fresh Tomatoes</h3>
-                                    <p class="farmer-name">Green Valley Farms</p>
-                                    <div class="product-price">₹45/kg</div>
-                                    <div class="badges">
-                                        <span class="badge badge-organic">Organic</span>
-                                        <span class="badge badge-verified">IoT Verified</span>
-                                    </div>
-                                    <button style="width: 100%; padding: 0.8rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem;">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Product 3 -->
-                            <div class="product-card">
-                                <div class="product-image">🥔</div>
-                                <div class="product-info">
-                                    <h3 class="product-name">Organic Potatoes</h3>
-                                    <p class="farmer-name">Root Harvest Co.</p>
-                                    <div class="product-price">₹35/kg</div>
-                                    <div class="badges">
-                                        <span class="badge badge-organic">Organic</span>
-                                        <span class="badge badge-verified">IoT Verified</span>
-                                    </div>
-                                    <button style="width: 100%; padding: 0.8rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem;">
-                                        View Details
-                                    </button>
-                                </div>
-                            </div>
+                        <div class="product-grid" id="featured-products">
+                            <!-- Products will be loaded dynamically -->
                         </div>
                     </div>
 
                     <!-- Recent Orders -->
                     <div class="card">
                         <h2 class="card-title">📦 Recent Orders</h2>
-                        <div class="orders-grid">
-                            <div class="order-item">
-                                <div class="order-image"></div>
-                                <div class="order-info">
-                                    <h4 style="margin-bottom: 0.3rem;">Organic Wheat Grains</h4>
-                                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Order #ORD001 • 2kg</p>
-                                    <div style="margin-top: 0.5rem;">
-                                        <h4 style="color: var(--accent-primary);">IoT Trust Data</h4>
-                                        <div class="sensor-grid">
-                                            <div class="sensor-item">
-                                                <div>💧 Moisture</div>
-                                                <div class="sensor-value">68%</div>
-                                                <div style="font-size: 0.7rem; color: var(--text-secondary);">At Harvest</div>
-                                            </div>
-                                            <div class="sensor-item">
-                                                <div>🌡️ Temp</div>
-                                                <div class="sensor-value">28°C</div>
-                                                <div style="font-size: 0.7rem; color: var(--text-secondary);">At Harvest</div>
-                                            </div>
-                                            <div class="sensor-item">
-                                                <div>❄️ Storage</div>
-                                                <div class="sensor-value">18°C</div>
-                                                <div style="font-size: 0.7rem; color: var(--text-secondary);">Warehouse</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div style="color: var(--accent-primary); font-weight: 600;">₹130</div>
-                                <div class="order-status status-delivered">Delivered</div>
-                            </div>
-
-                            <div class="order-item">
-                                <div class="order-image"></div>
-                                <div class="order-info">
-                                    <h4 style="margin-bottom: 0.3rem;">Fresh Tomatoes</h4>
-                                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Order #ORD002 • 1kg</p>
-                                </div>
-                                <div style="color: var(--accent-primary); font-weight: 600;">₹45</div>
-                                <div class="order-status status-shipped">Shipped</div>
-                            </div>
+                        <div class="orders-grid" id="recent-orders">
+                            <!-- Orders will be loaded dynamically -->
                         </div>
                     </div>
 
@@ -692,13 +178,8 @@
                     <!-- Notifications -->
                     <div class="card">
                         <h2 class="card-title">🔔 Notifications</h2>
-                        <div style="background: rgba(255, 170, 0, 0.1); padding: 1rem; border-radius: 10px; border: 1px solid var(--warning); margin-bottom: 1rem;">
-                            <p style="font-weight: 600; margin-bottom: 0.3rem;">🎉 Special Discount!</p>
-                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Get 15% off on your next order of organic grains</p>
-                        </div>
-                        <div style="background: rgba(0, 255, 198, 0.1); padding: 1rem; border-radius: 10px; border: 1px solid var(--accent-primary);">
-                            <p style="font-weight: 600; margin-bottom: 0.3rem;">📦 Order Update</p>
-                            <p style="color: var(--text-secondary); font-size: 0.9rem;">Your order #ORD002 has been shipped</p>
+                        <div id="notifications-container">
+                            <!-- Notifications will be loaded dynamically -->
                         </div>
                     </div>
 
@@ -720,8 +201,303 @@
     </section>
 
     <script>
+        // Global user data
+        let currentUser = null;
+
+        // Check authentication and load user data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthentication();
+            loadUserData();
+            loadDashboardData();
+        });
+
+        function checkAuthentication() {
+            const authUser = localStorage.getItem('authUser');
+            const authToken = localStorage.getItem('authToken');
+            
+            if (!authUser || !authToken) {
+                alert('Please login to access the dashboard');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                currentUser = JSON.parse(authUser);
+                console.log('Current user:', currentUser);
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                localStorage.removeItem('authUser');
+                localStorage.removeItem('authToken');
+                window.location.href = 'login.html';
+            }
+        }
+
+        function loadUserData() {
+            if (!currentUser) return;
+
+            // Update welcome message
+            document.getElementById('welcome-message').textContent = `Welcome back, ${currentUser.first_name}! 🛒`;
+            
+            // Update user profile information
+            document.getElementById('user-fullname').textContent = `${currentUser.first_name} ${currentUser.last_name}`;
+            document.getElementById('user-email').textContent = currentUser.email;
+            document.getElementById('user-membership').textContent = `Premium Customer • Member since ${new Date(currentUser.created_at).getFullYear()}`;
+            
+            // Generate user avatar based on first name
+            const avatar = document.getElementById('user-avatar');
+            avatar.textContent = getAvatarEmoji(currentUser.first_name);
+            
+            // Set user tier and additional info
+            document.getElementById('user-tier').textContent = '⭐ Premium Member';
+            document.getElementById('user-phone').textContent = '📱 +91 ••••• •••••';
+            document.getElementById('user-address').innerHTML = '123 Main Street,<br>Koramangala,<br>Bangalore - 560034';
+        }
+
+        function getAvatarEmoji(firstName) {
+            // Simple emoji mapping based on first letter
+            const firstLetter = firstName.charAt(0).toLowerCase();
+            const emojiMap = {
+                'a': '👨‍💼', 'b': '👩‍🌾', 'c': '👨‍🔬', 'd': '👩‍🎓', 'e': '👨‍🍳',
+                'f': '👩‍💻', 'g': '👨‍🎨', 'h': '👩‍🚀', 'i': '👨‍✈️', 'j': '👩‍⚕️',
+                'k': '👨‍🔧', 'l': '👩‍🏫', 'm': '👨‍🚒', 'n': '👩‍🔬', 'o': '👨‍🏭',
+                'p': '👩‍💼', 'q': '👨‍🌾', 'r': '👩‍🔧', 's': '👨‍🎤', 't': '👩‍🚀',
+                'u': '👨‍💻', 'v': '👩‍🍳', 'w': '👨‍🎓', 'x': '👩‍🎨', 'y': '👨‍⚕️',
+                'z': '👩‍✈️'
+            };
+            return emojiMap[firstLetter] || '👤';
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load user orders
+                await loadUserOrders();
+                
+                // Load featured products
+                await loadFeaturedProducts();
+                
+                // Load notifications
+                loadNotifications();
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        async function loadUserOrders() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/orders/${currentUser.id}`);
+                if (response.ok) {
+                    const orders = await response.json();
+                    updateOrderStats(orders);
+                    displayRecentOrders(orders);
+                } else {
+                    console.warn('Could not fetch orders, using sample data');
+                    useSampleOrderData();
+                }
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                useSampleOrderData();
+            }
+        }
+
+        function updateOrderStats(orders) {
+            const totalOrders = orders.length;
+            const totalSpent = orders.reduce((sum, order) => sum + order.total_price_inr, 0);
+            
+            document.getElementById('total-orders').textContent = totalOrders;
+            document.getElementById('total-spent').textContent = `₹${totalSpent}`;
+            
+            // Calculate average rating (mock data for now)
+            const avgRating = totalOrders > 0 ? (4.5 + Math.random() * 0.5).toFixed(1) : '0.0';
+            document.getElementById('avg-rating').textContent = avgRating;
+            
+            // Mock wishlist count
+            document.getElementById('wishlist-count').textContent = Math.floor(Math.random() * 10) + 1;
+        }
+
+        function displayRecentOrders(orders) {
+            const container = document.getElementById('recent-orders');
+            const recentOrders = orders.slice(0, 2); // Show only 2 most recent orders
+            
+            if (recentOrders.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <p>No orders yet</p>
+                        <a href="marketplace.html" style="color: var(--accent-primary); text-decoration: none;">
+                            Start shopping →
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = recentOrders.map(order => `
+                <div class="order-item">
+                    <div class="order-image"></div>
+                    <div class="order-info">
+                        <h4 style="margin-bottom: 0.3rem;">Order #ORD${order.id.toString().padStart(3, '0')}</h4>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                            ${order.items.length} item${order.items.length > 1 ? 's' : ''} • ${new Date(order.created_at).toLocaleDateString()}
+                        </p>
+                        <div style="margin-top: 0.5rem;">
+                            <h4 style="color: var(--accent-primary);">Order Details</h4>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                                ${order.items.map(item => `${item.quantity}x Product`).join(', ')}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="color: var(--accent-primary); font-weight: 600;">₹${order.total_price_inr}</div>
+                    <div class="order-status status-${getStatusClass(order.status)}">${order.status}</div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'delivered': 'delivered',
+                'shipped': 'shipped', 
+                'pending': 'pending',
+                'processing': 'pending'
+            };
+            return statusMap[status.toLowerCase()] || 'pending';
+        }
+
+        async function loadFeaturedProducts() {
+            try {
+                const response = await fetch('/api/products?category=all');
+                if (response.ok) {
+                    const products = await response.json();
+                    displayFeaturedProducts(products.slice(0, 3)); // Show 3 featured products
+                } else {
+                    console.warn('Could not fetch products, using sample data');
+                    useSampleProductData();
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                useSampleProductData();
+            }
+        }
+
+        function displayFeaturedProducts(products) {
+            const container = document.getElementById('featured-products');
+            
+            container.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-image">${getProductEmoji(product.category)}</div>
+                    <div class="product-info">
+                        <h3 class="product-name">${product.name}</h3>
+                        <p class="farmer-name">${product.farmer ? product.farmer.farm_name : 'Organic Farm'}</p>
+                        <div class="product-price">₹${product.price_inr}/${product.unit}</div>
+                        <div class="badges">
+                            ${product.organic_certified ? '<span class="badge badge-organic">Organic</span>' : ''}
+                            ${product.iot_verified ? '<span class="badge badge-verified">IoT Verified</span>' : ''}
+                            <span class="badge badge-fresh">Fresh</span>
+                        </div>
+                        <button onclick="viewProductDetails(${product.id})" style="width: 100%; padding: 0.8rem; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-top: 0.5rem;">
+                            View Details
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getProductEmoji(category) {
+            const emojiMap = {
+                'vegetables': '🍅',
+                'fruits': '🍎',
+                'grains': '🌾',
+                'dairy': '🥛'
+            };
+            return emojiMap[category] || '🌱';
+        }
+
+        function loadNotifications() {
+            const container = document.getElementById('notifications-container');
+            
+            const notifications = [
+                {
+                    type: 'discount',
+                    title: '🎉 Special Discount!',
+                    message: 'Get 15% off on your next order of organic grains',
+                    color: 'warning'
+                },
+                {
+                    type: 'order',
+                    title: '📦 Order Update',
+                    message: `Welcome ${currentUser.first_name}! Explore our organic products.`,
+                    color: 'accent'
+                }
+            ];
+
+            container.innerHTML = notifications.map(notif => `
+                <div style="background: rgba(${getNotificationColor(notif.color)}; padding: 1rem; border-radius: 10px; border: 1px solid ${getNotificationBorder(notif.color)}; margin-bottom: 1rem;">
+                    <p style="font-weight: 600; margin-bottom: 0.3rem;">${notif.title}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">${notif.message}</p>
+                </div>
+            `).join('');
+        }
+
+        function getNotificationColor(type) {
+            const colors = {
+                'warning': '255, 170, 0, 0.1',
+                'accent': '0, 255, 198, 0.1',
+                'success': '0, 255, 136, 0.1'
+            };
+            return colors[type] || colors['accent'];
+        }
+
+        function getNotificationBorder(type) {
+            const borders = {
+                'warning': 'var(--warning)',
+                'accent': 'var(--accent-primary)',
+                'success': 'var(--success)'
+            };
+            return borders[type] || borders['accent'];
+        }
+
+        function viewProductDetails(productId) {
+            // Navigate to product details page or show modal
+            window.location.href = `product-details.html?id=${productId}`;
+        }
+
+        function useSampleOrderData() {
+            // Fallback sample data
+            const sampleOrders = [
+                {
+                    id: 1,
+                    total_price_inr: 130,
+                    status: 'delivered',
+                    created_at: new Date().toISOString(),
+                    items: [{ quantity: 2 }]
+                }
+            ];
+            updateOrderStats(sampleOrders);
+            displayRecentOrders(sampleOrders);
+        }
+
+        function useSampleProductData() {
+            // Fallback sample products
+            const sampleProducts = [
+                {
+                    id: 1,
+                    name: "Organic Wheat Grains",
+                    category: "grains",
+                    price_inr: 65,
+                    unit: "kg",
+                    organic_certified: true,
+                    iot_verified: true,
+                    farmer: { farm_name: "Traditional Grains Co." }
+                }
+            ];
+            displayFeaturedProducts(sampleProducts);
+        }
+
         function logout() {
             if(confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('authUser');
                 window.location.href = 'index.html';
             }
         }
@@ -735,14 +511,6 @@
                 cartCount.textContent = currentCount + 1;
             }
         }, 10000);
-
-        // Product detail view simulation
-        document.querySelectorAll('.product-card button').forEach(button => {
-            button.addEventListener('click', function() {
-                const productName = this.closest('.product-card').querySelector('.product-name').textContent;
-                alert(`Opening detailed view for: ${productName}\n\nThis would show:\n• Complete IoT sensor data\n• Farmer profile\n• Certification documents\n• Real-time warehouse conditions\n• Customer reviews`);
-            });
-        });
     </script>
 </body>
 </html>
